@@ -1,2 +1,2 @@
 # ChromaCode
-Chroma Code is a new type of QR which adds color information for more data density
+ChromaCode is an exciting and new approach to QR technology that enhances data storage capacity by integrating color information into traditional QR codes. By leveraging the power of multi-colored patterns, ChromaCode transforms the familiar black-and-white QR code into a vibrant, high-density data storage solution. This innovation not only increases the amount of information that can be encoded but also opens up new possibilities for creative and functional applications across industries.
