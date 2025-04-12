@@ -43,6 +43,12 @@
 #define AP3_CORE_COLOR 3
 #define APX_CORE_COLOR 6
 
+#define BITMAP_BITS_PER_PIXEL 32
+#define BITMAP_BITS_PER_CHANNEL 8
+#define BITMAP_CHANNEL_COUNT 4
+
+#define INTERLEAVE_SEED 226759
+
 #define VERSION2SIZE(x) (x * 4 + 17)
 #define SIZE2VERSION(x) ((x - 17) / 4)
 #define MAX(a, b) ({__typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
@@ -56,7 +62,7 @@ struct rgb
     constexpr rgb(uint8_t a, uint8_t b, uint8_t c) : R(a), G(b), B(c) {}
 };
 
-typedef struct vector2d
+struct vector2d
 {
     int x;
     int y;
@@ -490,11 +496,28 @@ constexpr int apPos[32][9] = {{4, 18, 0, 0, 0, 0, 0, 0, 0},
                               {4, 17, 35, 53, 71, 89, 107, 119, 138},
                               {4, 20, 38, 55, 73, 91, 108, 126, 142}};
 
+constexpr float ecclevel2coderate[11] = {0.55f, 0.63f, 0.57f, 0.55f, 0.50f, 0.43f, 0.34f, 0.25f, 0.20f, 0.17f, 0.14f};
+
+constexpr int ecclevel2wcwr[11][2] = {{4, 9}, {3, 8}, {3, 7}, {4, 9}, {3, 6}, {4, 7}, {4, 6}, {3, 4}, {4, 5}, {5, 6}, {6, 7}};
+
+struct chromaCode
+{
+    int dimension;      ///< Module size in pixel
+    vector2d code_size; ///< Code size in symbol
+    int min_x;
+    int min_y;
+    int rows;
+    int cols;
+    std::vector<int> row_height;
+    std::vector<int> col_width;
+};
+
 class encode;
 
 class symbol
 {
     friend class encode;
+    friend int getSymbolCapacity(encode &enc, int index);
 
 public:
     int index;
@@ -507,8 +530,6 @@ public:
     std::string metadata;
     std::vector<uint8_t> matrix;
     void getOptimalECC(int capacity, int net_data_length);
-    int getSymbolCapacity(encode &enc);
-    int getMetadataLength(encode &enc);
     bool createMatrix(encode &enc, std::string &ecc_encoded_data);
 };
 
@@ -525,6 +546,12 @@ private:
     bool isDefaultMode();
     void getNextMetadataModuleInMaster(int matrix_height, int matrix_width, int next_module_count, int *x, int *y);
     void convert_dec_to_bin(int dec, std::string &bin, int start_position, int length);
+    void swap_symbols(int index1, int index2);
+    int getMetadataLength(int index);
+    int getSymbolCapacity(int index);
+    std::string encodedData;
+    int encodedLength;
+    chromaCode p;
 
 public:
     int colorNumber;
@@ -537,12 +564,23 @@ public:
     std::vector<uint8_t> symbolEccLevels;
     std::vector<int> symbolPositions;
     std::vector<symbol> symbols;
-    std::vector<bitmap> bitmaps;
-    std::vector<int> analyzeInputData(std::string &input, int *encoded_length);
+    bitmap bitmp;
+    std::vector<int> analyzeInputData(std::string &input);
     bool encodeMasterMetadata();
     bool updateMasterMetadataPartII(int mask_ref);
     void placeMasterMetadataPartII();
-    std::string encodeData(std::string &data, int encodedLength);
+    void encodeData(std::string &data);
+    bool assignDockedSymbols();
+    void getCodePara();
+    bool createBitmap();
+    bool checkDockedSymbolSize();
+    bool setMasterSymbolVersion();
+    bool addE2SlaveMetadata(symbol &slave);
+    void updateSlaveMetadataE(int host_index, int slave_index);
+    bool fitDataIntoSymbols();
+    bool InitSymbols();
+    bool setSlaveMetadata();
+    int generateJABCode(std::string &data);
     encode(int color_number, int symbol_number);
     ~encode();
 };

@@ -26,9 +26,9 @@ void encode::setDefaultPalette(int colorNumber, std::vector<rgb> &palette)
         std::cout << "Color should be 4 or 8\n";
 }
 
-void encode::setDefaultEccLevels(int symbol_number, std::vector<uint8_t> &ecc_levels)
+void encode::setDefaultEccLevels(int symbolNumber, std::vector<uint8_t> &ecc_levels)
 {
-    for (int i = 0; i < symbol_number; i++)
+    for (int i = 0; i < symbolNumber; i++)
         ecc_levels.push_back(0);
 }
 
@@ -58,22 +58,22 @@ void encode::convert_dec_to_bin(int dec, std::string &bin, int start_position, i
     }
 }
 
-encode::encode(int colorNumber, int symbol_number)
+encode::encode(int colorNumber, int symbolNumber)
 {
     if (colorNumber != 4 && colorNumber != 8)
         colorNumber = DEFAULT_COLOR_NUMBER;
-    if (symbol_number < 1 || symbol_number > MAX_SYMBOL_NUMBER)
-        symbol_number = DEFAULT_SYMBOL_NUMBER;
+    if (symbolNumber < 1 || symbolNumber > MAX_SYMBOL_NUMBER)
+        symbolNumber = DEFAULT_SYMBOL_NUMBER;
 
     colorNumber = colorNumber;
-    symbolNumber = symbol_number;
+    symbolNumber = symbolNumber;
 
     setDefaultPalette(colorNumber, palette);
 
     setDefaultEccLevels(symbolNumber, symbolEccLevels);
 }
 
-std::vector<int> encode::analyzeInputData(std::string &input, int *encodedLength)
+std::vector<int> encode::analyzeInputData(std::string &input)
 {
     int encodeSeqLength = ENC_MAX;
     std::vector<char> seq(input.length());
@@ -310,7 +310,7 @@ std::vector<int> encode::analyzeInputData(std::string &input, int *encodedLength
         else
             exit(12);
     }
-    *encodedLength = encodeSeqLength;
+    encodedLength = encodeSeqLength;
     return encodeSeq;
 }
 
@@ -321,13 +321,13 @@ bool encode::isDefaultMode()
     return false;
 }
 
-int symbol::getMetadataLength(encode &enc)
+int encode::getMetadataLength(int index)
 {
     int length = 0;
 
     if (index == 0)
     {
-        if (enc.isDefaultMode())
+        if (isDefaultMode())
             length = 0;
         else
         {
@@ -339,10 +339,10 @@ int symbol::getMetadataLength(encode &enc)
     else
     {
         length += 2;
-        int host_index = enc.symbols[index].host;
-        if (enc.symbolVersions[index].x != enc.symbolVersions[host_index].x || enc.symbolVersions[index].y != enc.symbolVersions[host_index].y)
+        int host_index = symbols[index].host;
+        if (symbolVersions[index].x != symbolVersions[host_index].x || symbolVersions[index].y != symbolVersions[host_index].y)
             length += 5;
-        if (enc.symbolEccLevels[index] != enc.symbolEccLevels[host_index])
+        if (symbolEccLevels[index] != symbolEccLevels[host_index])
         {
             length += 6;
         }
@@ -350,7 +350,7 @@ int symbol::getMetadataLength(encode &enc)
     return length;
 }
 
-int symbol::getSymbolCapacity(encode &enc)
+int encode::getSymbolCapacity(int index)
 {
     int nb_modules_fp;
     if (index == 0)
@@ -362,17 +362,17 @@ int symbol::getSymbolCapacity(encode &enc)
         nb_modules_fp = 4 * 7;
     }
 
-    int nb_modules_palette = enc.colorNumber > 64 ? (64 - 2) * COLOR_PALETTE_NUMBER : (enc.colorNumber - 2) * COLOR_PALETTE_NUMBER;
-    int side_size_x = VERSION2SIZE(enc.symbolVersions[index].x);
-    int side_size_y = VERSION2SIZE(enc.symbolVersions[index].y);
-    int number_of_aps_x = apNum[enc.symbolVersions[index].x - 1];
-    int number_of_aps_y = apNum[enc.symbolVersions[index].y - 1];
+    int nb_modules_palette = colorNumber > 64 ? (64 - 2) * COLOR_PALETTE_NUMBER : (colorNumber - 2) * COLOR_PALETTE_NUMBER;
+    int side_size_x = VERSION2SIZE(symbolVersions[index].x);
+    int side_size_y = VERSION2SIZE(symbolVersions[index].y);
+    int number_of_aps_x = apNum[symbolVersions[index].x - 1];
+    int number_of_aps_y = apNum[symbolVersions[index].y - 1];
     int nb_modules_ap = (number_of_aps_x * number_of_aps_y - 4) * 7;
-    int nb_of_bpm = log(enc.colorNumber) / log(2);
+    int nb_of_bpm = log(colorNumber) / log(2);
     int nb_modules_metadata = 0;
     if (index == 0)
     {
-        int nb_metadata_bits = getMetadataLength(enc);
+        int nb_metadata_bits = getMetadataLength(index);
         if (nb_metadata_bits > 0)
         {
             nb_modules_metadata = (nb_metadata_bits - MASTER_METADATA_PART1_LENGTH) / nb_of_bpm;
@@ -405,9 +405,8 @@ void symbol::getOptimalECC(int capacity, int net_data_length)
     }
 }
 
-std::string encode::encodeData(std::string &data, int encodedLength)
+void encode::encodeData(std::string &data)
 {
-    std::string encodedData;
 
     encodedData.resize(encodedLength);
 
@@ -572,7 +571,6 @@ std::string encode::encodeData(std::string &data, int encodedLength)
         }
         currentEncodedLength++;
     }
-    return encodedData;
 }
 
 bool encode::encodeMasterMetadata()
@@ -640,7 +638,7 @@ bool encode::updateMasterMetadataPartII(int mask_ref)
 
     // encode new PartII
     int wcwr[2] = {2, -1};
-    std::string encoded_partII = encodeLDPC(partII, wcwr);
+    std::string encoded_partII; // = encodeLDPC(partII, wcwr);
     // update metadata
     symbols[0].metadata.replace(MASTER_METADATA_PART1_LENGTH, encoded_partII.length(), encoded_partII);
 
@@ -1073,6 +1071,774 @@ bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
         }
     }
     return true;
+}
+
+void encode::swap_symbols(int index1, int index2)
+{
+    swap_int(&symbolPositions[index1], &symbolPositions[index2]);
+    swap_int(&symbolVersions[index1].x, &symbolVersions[index2].x);
+    swap_int(&symbolVersions[index1].y, &symbolVersions[index2].y);
+    swap_byte(&symbolEccLevels[index1], &symbolEccLevels[index2]);
+    // swap symbols
+    symbol s;
+    s = symbols[index1];
+    symbols[index1] = symbols[index2];
+    symbols[index2] = s;
+}
+
+bool encode::assignDockedSymbols()
+{
+    // initialize host and slaves
+    for (int i = 0; i < symbolNumber; i++)
+    {
+        // initialize symbol host index
+        symbols[i].host = -1;
+        // initialize symbol's slave index
+        for (int j = 0; j < 4; j++)
+            symbols[i].slaves[j] = 0; // 0:no slave
+    }
+    // assign docked symbols
+    int assigned_slave_index = 1;
+    for (int i = 0; i < symbolNumber - 1 && assigned_slave_index < symbolNumber; i++)
+    {
+        for (int j = 0; j < 4 && assigned_slave_index < symbolNumber; j++)
+        {
+            for (int k = i + 1; k < symbolNumber && assigned_slave_index < symbolNumber; k++)
+            {
+                if (symbols[k].host == -1)
+                {
+                    int hpos = symbolPositions[i];
+                    int spos = symbolPositions[k];
+                    bool slave_found = false;
+                    switch (j)
+                    {
+                    case 0: // top
+                        if (symbolPos[hpos].x == symbolPos[spos].x && symbolPos[hpos].y - 1 == symbolPos[spos].y)
+                        {
+                            symbols[i].slaves[0] = assigned_slave_index;
+                            symbols[k].slaves[1] = -1; //-1:host position
+                            slave_found = true;
+                        }
+                        break;
+                    case 1: // bottom
+                        if (symbolPos[hpos].x == symbolPos[spos].x && symbolPos[hpos].y + 1 == symbolPos[spos].y)
+                        {
+                            symbols[i].slaves[1] = assigned_slave_index;
+                            symbols[k].slaves[0] = -1;
+                            slave_found = true;
+                        }
+                        break;
+                    case 2: // left
+                        if (symbolPos[hpos].y == symbolPos[spos].y && symbolPos[hpos].x - 1 == symbolPos[spos].x)
+                        {
+                            symbols[i].slaves[2] = assigned_slave_index;
+                            symbols[k].slaves[3] = -1;
+                            slave_found = true;
+                        }
+                        break;
+                    case 3: // right
+                        if (symbolPos[hpos].y == symbolPos[spos].y && symbolPos[hpos].x + 1 == symbolPos[spos].x)
+                        {
+                            symbols[i].slaves[3] = assigned_slave_index;
+                            symbols[k].slaves[2] = -1;
+                            slave_found = true;
+                        }
+                        break;
+                    }
+                    if (slave_found)
+                    {
+                        swap_symbols(k, assigned_slave_index);
+                        symbols[assigned_slave_index].host = i;
+                        assigned_slave_index++;
+                    }
+                }
+            }
+        }
+    }
+
+    // check if there is undocked symbol
+    for (int i = 1; i < symbolNumber; i++)
+    {
+        if (symbols[i].host == -1)
+        {
+            std::cout << "Slave symbol at position " << symbolPositions[i] << " has no host\n";
+            return false;
+        }
+    }
+    return true;
+}
+
+void encode::getCodePara()
+{
+    // calculate the module size in pixel
+    if (masterSymbolWidth != 0 || masterSymbolHeight != 0)
+    {
+        int dimension_x = masterSymbolWidth / symbols[0].side_size.x;
+        int dimension_y = masterSymbolHeight / symbols[0].side_size.y;
+        p.dimension = dimension_x > dimension_y ? dimension_x : dimension_y;
+        if (p.dimension < 1)
+            p.dimension = 1;
+    }
+    else
+    {
+        p.dimension = moduleSize;
+    }
+
+    // find the coordinate range of symbols
+    p.min_x = 0;
+    p.min_y = 0;
+    int max_x = 0, max_y = 0;
+    for (int i = 0; i < symbolNumber; i++)
+    {
+        // find the mininal x and y
+        if (symbolPos[symbolPositions[i]].x < p.min_x)
+            p.min_x = symbolPos[symbolPositions[i]].x;
+        if (symbolPos[symbolPositions[i]].y < p.min_y)
+            p.min_y = symbolPos[symbolPositions[i]].y;
+        // find the maximal x and y
+        if (symbolPos[symbolPositions[i]].x > max_x)
+            max_x = symbolPos[symbolPositions[i]].x;
+        if (symbolPos[symbolPositions[i]].y > max_y)
+            max_y = symbolPos[symbolPositions[i]].y;
+    }
+
+    // calculate the code size
+    p.rows = max_y - p.min_y + 1;
+    p.cols = max_x - p.min_x + 1;
+    p.row_height.resize(p.rows);
+    p.col_width.resize(p.cols);
+
+    p.code_size.x = 0;
+    p.code_size.y = 0;
+    bool flag = 0;
+    for (int x = p.min_x; x <= max_x; x++)
+    {
+        flag = 0;
+        for (int i = 0; i < symbolNumber; i++)
+        {
+            if (symbolPos[symbolPositions[i]].x == x)
+            {
+                p.col_width[x - p.min_x] = symbols[i].side_size.x;
+                p.code_size.x += p.col_width[x - p.min_x];
+                flag = 1;
+            }
+            if (flag)
+                break;
+        }
+    }
+    for (int y = p.min_y; y <= max_y; y++)
+    {
+        flag = 0;
+        for (int i = 0; i < symbolNumber; i++)
+        {
+            if (symbolPos[symbolPositions[i]].y == y)
+            {
+                p.row_height[y - p.min_y] = symbols[i].side_size.y;
+                p.code_size.y += p.row_height[y - p.min_y];
+                flag = 1;
+            }
+            if (flag)
+                break;
+        }
+    }
+}
+
+bool encode::createBitmap()
+{
+    // create bitmp
+    int width = p.dimension * p.code_size.x;
+    int height = p.dimension * p.code_size.y;
+    int bytes_per_pixel = BITMAP_BITS_PER_PIXEL / 8;
+    int bytes_per_row = width * bytes_per_pixel;
+
+    bitmp.width = width;
+    bitmp.height = height;
+    bitmp.bits_per_pixel = BITMAP_BITS_PER_PIXEL;
+    bitmp.bits_per_channel = BITMAP_BITS_PER_CHANNEL;
+    bitmp.channel_count = BITMAP_CHANNEL_COUNT;
+
+    // place symbols in bitmp
+    for (int k = 0; k < symbolNumber; k++)
+    {
+        // calculate the starting coordinates of the symbol matrix
+        int startx = 0, starty = 0;
+        int col = symbolPos[symbolPositions[k]].x - p.min_x;
+        int row = symbolPos[symbolPositions[k]].y - p.min_y;
+        for (int c = 0; c < col; c++)
+            startx += p.col_width[c];
+        for (int r = 0; r < row; r++)
+            starty += p.row_height[r];
+
+        // place symbol in the code
+        int symbol_width = symbols[k].side_size.x;
+        int symbol_height = symbols[k].side_size.y;
+        for (int x = startx; x < (startx + symbol_width); x++)
+        {
+            for (int y = starty; y < (starty + symbol_height); y++)
+            {
+                // place one module in the bitmp
+                int p_index = symbols[k].matrix[(y - starty) * symbol_width + (x - startx)];
+                for (int i = y * p.dimension; i < (y * p.dimension + p.dimension); i++)
+                {
+                    for (int j = x * p.dimension; j < (x * p.dimension + p.dimension); j++)
+                    {
+                        bitmp.pixel[i * bytes_per_row + j * bytes_per_pixel] = palette[p_index].R;     // R
+                        bitmp.pixel[i * bytes_per_row + j * bytes_per_pixel + 1] = palette[p_index].B; // B
+                        bitmp.pixel[i * bytes_per_row + j * bytes_per_pixel + 2] = palette[p_index].G; // G
+                        bitmp.pixel[i * bytes_per_row + j * bytes_per_pixel + 3] = 255;                // A
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool encode::checkDockedSymbolSize()
+{
+    for (int i = 0; i < symbolNumber; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            int slave_index = symbols[i].slaves[j];
+            if (slave_index > 0)
+            {
+                int hpos = symbolPositions[i];
+                int spos = symbolPositions[slave_index];
+                int x_diff = symbolPos[hpos].x - symbolPos[spos].x;
+                int y_diff = symbolPos[hpos].y - symbolPos[spos].y;
+
+                if (x_diff == 0 && symbolVersions[i].x != symbolVersions[slave_index].x)
+                {
+                    std::cout << "Slave symbol at position " << spos
+                              << " has different side version in X direction as its host symbol at position " << hpos << "\n";
+
+                    return false;
+                }
+                if (y_diff == 0 && symbolVersions[i].y != symbolVersions[slave_index].y)
+                {
+                    std::cout << "Slave symbol at position " << spos
+                              << " has different side version in Y direction as its host symbol at position " << hpos << "\n";
+
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool encode::setMasterSymbolVersion()
+{
+    // calculate required number of data modules depending on data_length
+    int net_data_length = encodedData.length();
+    int payload_length = net_data_length + 5; // plus S and flag bit
+    if (symbolEccLevels[0] == 0)
+        symbolEccLevels[0] = DEFAULT_ECC_LEVEL;
+    symbols[0].wcwr[0] = ecclevel2wcwr[symbolEccLevels[0]][0];
+    symbols[0].wcwr[1] = ecclevel2wcwr[symbolEccLevels[0]][1];
+
+    // determine the minimum square symbol to fit data
+    int capacity, net_capacity;
+    bool found_flag = false;
+    for (int i = 1; i <= 32; i++)
+    {
+        symbolVersions[0].x = i;
+        symbolVersions[0].y = i;
+        capacity = getSymbolCapacity(0);
+        net_capacity = (capacity / symbols[0].wcwr[1]) * symbols[0].wcwr[1] - (capacity / symbols[0].wcwr[1]) * symbols[0].wcwr[0];
+        if (net_capacity >= payload_length)
+        {
+            found_flag = true;
+            break;
+        }
+    }
+    if (!found_flag)
+    {
+        int level = -1;
+        for (int j = (int)symbolEccLevels[0] - 1; j > 0; j--)
+        {
+            net_capacity = (capacity / ecclevel2wcwr[j][1]) * ecclevel2wcwr[j][1] - (capacity / ecclevel2wcwr[j][1]) * ecclevel2wcwr[j][0];
+            if (net_capacity >= payload_length)
+                level = j;
+        }
+        if (level > 0)
+        {
+            std::cout << "Message does not fit into one symbol with the given ECC level. Please use an ECC level lower than " << level << " with '--ecc-level " << level << "\n";
+            return false;
+        }
+        else
+        {
+            std::cout << "Message does not fit into one symbol. Use more symbols.\n";
+            return false;
+        }
+    }
+    // update symbol side size
+    symbols[0].side_size.x = VERSION2SIZE(symbolVersions[0].x);
+    symbols[0].side_size.y = VERSION2SIZE(symbolVersions[0].y);
+
+    return true;
+}
+
+bool encode::addE2SlaveMetadata(symbol &slave)
+{
+    // copy old metadata to new metadata
+    int old_metadata_length = slave.metadata.length();
+    int new_metadata_length = old_metadata_length + 6;
+    std::string old_metadata = slave.metadata;
+    slave.metadata.resize(new_metadata_length);
+
+    slave.metadata[1] = 1;
+    // set variable E
+    int E1 = slave.wcwr[0] - 3;
+    int E2 = slave.wcwr[1] - 4;
+    convert_dec_to_bin(E1, slave.metadata, old_metadata_length, 3);
+    convert_dec_to_bin(E2, slave.metadata, old_metadata_length + 3, 3);
+    return true;
+}
+
+void encode::updateSlaveMetadataE(int host_index, int slave_index)
+{
+    symbol *host = &symbols[host_index];
+    symbol *slave = &symbols[slave_index];
+
+    int offset = host->data.length();
+    // find the start flag of metadata
+    while (host->data[offset] == 0)
+    {
+        offset--;
+    }
+    // skip the flag bit
+    offset--;
+    // skip host metadata S
+    if (host_index == 0)
+        offset -= 4;
+    else
+        offset -= 3;
+    // skip other slave symbol's metadata
+    for (int i = 0; i < 4; i++)
+    {
+        if (host->slaves[i] == slave_index)
+            break;
+        else if (host->slaves[i] <= 0)
+            continue;
+        else
+            offset -= symbols[host->slaves[i]].metadata.length();
+    }
+    // skip SS, SE and possibly V
+    if (slave->metadata[0] == 1)
+        offset -= 7;
+    else
+        offset -= 2;
+    // update E
+    std::string E;
+    E.resize(6);
+    int E1 = slave->wcwr[0] - 3;
+    int E2 = slave->wcwr[1] - 4;
+    convert_dec_to_bin(E1, E, 0, 3);
+    convert_dec_to_bin(E2, E, 3, 3);
+    for (int i = 0; i < 6; i++)
+    {
+        host->data[offset--] = E[i];
+    }
+}
+
+bool encode::fitDataIntoSymbols()
+{
+    // calculate the net capacity of each symbol and the total net capacity
+    int capacity[symbolNumber];
+    int net_capacity[symbolNumber];
+    int total_net_capacity = 0;
+    for (int i = 0; i < symbolNumber; i++)
+    {
+        capacity[i] = getSymbolCapacity(i);
+        symbols[i].wcwr[0] = ecclevel2wcwr[symbolEccLevels[i]][0];
+        symbols[i].wcwr[1] = ecclevel2wcwr[symbolEccLevels[i]][1];
+        net_capacity[i] = (capacity[i] / symbols[i].wcwr[1]) * symbols[i].wcwr[1] - (capacity[i] / symbols[i].wcwr[1]) * symbols[i].wcwr[0];
+        total_net_capacity += net_capacity[i];
+    }
+    // assign data into each symbol
+    int assigned_data_length = 0;
+    for (int i = 0; i < symbolNumber; i++)
+    {
+        // divide data proportionally
+        int s_data_length;
+        if (i == symbolNumber - 1)
+        {
+            s_data_length = encodedData.length() - assigned_data_length;
+        }
+        else
+        {
+            float prop = (float)net_capacity[i] / (float)total_net_capacity;
+            s_data_length = (int)(prop * encodedData.length());
+        }
+        int s_payload_length = s_data_length;
+
+        // add flag bit
+        s_payload_length++;
+        // add host metadata S length (master metadata Part III or slave metadata Part III)
+        if (i == 0)
+            s_payload_length += 4;
+        else
+            s_payload_length += 3;
+        // add slave metadata length
+        for (int j = 0; j < 4; j++)
+        {
+            if (symbols[i].slaves[j] > 0)
+            {
+                s_payload_length += symbols[symbols[i].slaves[j]].metadata.length();
+            }
+        }
+
+        // check if the full payload exceeds net capacity
+        if (s_payload_length > net_capacity[i])
+        {
+            std::cout << "Message does not fit into the specified code. Use higher symbol version.";
+            return false;
+        }
+
+        // add metadata E for slave symbols if free capacity available
+        int j = 0;
+        while (net_capacity[i] - s_payload_length >= 6 && j < 4)
+        {
+            if (symbols[i].slaves[j] > 0)
+            {
+                if (symbols[symbols[i].slaves[j]].metadata[1] == 0) // check SE
+                {
+                    if (!addE2SlaveMetadata(symbols[symbols[i].slaves[j]]))
+                        return false;
+                    s_payload_length += 6; // add E length
+                }
+            }
+            j++;
+        }
+
+        // get optimal code rate
+        int pn_length = s_payload_length;
+        if (i == 0)
+        {
+            if (!isDefaultMode())
+            {
+                symbols[i].getOptimalECC(capacity[i], s_payload_length);
+                pn_length = (capacity[i] / symbols[i].wcwr[1]) * symbols[i].wcwr[1] - (capacity[i] / symbols[i].wcwr[1]) * symbols[i].wcwr[0];
+            }
+            else
+                pn_length = net_capacity[i];
+        }
+        else
+        {
+            if (symbols[i].metadata[1] == 1) // SE = 1
+            {
+                symbols[i].getOptimalECC(capacity[i], pn_length);
+                pn_length = (capacity[i] / symbols[i].wcwr[1]) * symbols[i].wcwr[1] - (capacity[i] / symbols[i].wcwr[1]) * symbols[i].wcwr[0];
+                updateSlaveMetadataE(symbols[i].host, i);
+            }
+            else
+                pn_length = net_capacity[i];
+        }
+
+        // start to set full payload
+        symbols[i].data.resize(pn_length);
+
+        // set data
+        symbols[i].data.assign(encodedData.substr(0, assigned_data_length), s_data_length);
+        assigned_data_length += s_data_length;
+        // set flag bit
+        int set_pos = s_payload_length - 1;
+        symbols[i].data[set_pos--] = 1;
+        // set host metadata S
+        for (int k = 0; k < 4; k++)
+        {
+            if (symbols[i].slaves[k] > 0)
+            {
+                symbols[i].data[set_pos--] = 1;
+            }
+            else if (symbols[i].slaves[k] == 0)
+            {
+                symbols[i].data[set_pos--] = 0;
+            }
+        }
+        // set slave metadata
+        for (int k = 0; k < 4; k++)
+        {
+            if (symbols[i].slaves[k] > 0)
+            {
+                for (int m = 0; m < symbols[symbols[i].slaves[k]].metadata.length(); m++)
+                {
+                    symbols[i].data[set_pos--] = symbols[symbols[i].slaves[k]].metadata[m];
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool encode::InitSymbols()
+{
+    // check all information for multi-symbol code are valid
+    if (symbolNumber > 1)
+    {
+        for (int i = 0; i < symbolNumber; i++)
+        {
+            if (symbolVersions[i].x < 1 || symbolVersions[i].x > 32 || symbolVersions[i].y < 1 || symbolVersions[i].y > 32)
+            {
+                std::cout << "Incorrect symbol version for symbol " << i;
+                return false;
+            }
+            if (symbolPositions[i] < 0 || symbolPositions[i] > MAX_SYMBOL_NUMBER)
+            {
+                std::cout << "Incorrect symbol position for symbol " << i;
+                return false;
+            }
+        }
+    }
+    // move the master symbol to the first
+    if (symbolNumber > 1 && symbolPositions[0] != 0)
+    {
+        for (int i = 0; i < symbolNumber; i++)
+        {
+            if (symbolPositions[i] == 0)
+            {
+                swap_int(&symbolPositions[i], &symbolPositions[0]);
+                swap_int(&symbolVersions[i].x, &symbolVersions[0].x);
+                swap_int(&symbolVersions[i].y, &symbolVersions[0].y);
+                swap_byte(&symbolEccLevels[i], &symbolEccLevels[0]);
+                break;
+            }
+        }
+    }
+    // if no master symbol exists in multi-symbol code
+    if (symbolNumber > 1 && symbolPositions[0] != 0)
+    {
+        std::cout << "Master symbol missing";
+        return false;
+    }
+    // if only one symbol but its position is not 0 - set to zero. Everything else makes no sense.
+    if (symbolNumber == 1 && symbolPositions[0] != 0)
+        symbolPositions[0] = 0;
+    // check if a symbol position is used twice
+    for (int i = 0; i < symbolNumber - 1; i++)
+    {
+        for (int j = i + 1; j < symbolNumber; j++)
+        {
+            if (symbolPositions[i] == symbolPositions[j])
+            {
+                std::cout << "Duplicate symbol position";
+                return false;
+            }
+        }
+    }
+    // assign docked symbols to their hosts
+    if (!assignDockedSymbols())
+        return false;
+    // check if the docked symbol size matches the docked side of its host
+    if (!checkDockedSymbolSize())
+        return false;
+    // set symbol index and symbol side size
+    for (int i = 0; i < symbolNumber; i++)
+    {
+        // set symbol index
+        symbols[i].index = i;
+        // set symbol side size
+        symbols[i].side_size.x = VERSION2SIZE(symbolVersions[i].x);
+        symbols[i].side_size.y = VERSION2SIZE(symbolVersions[i].y);
+    }
+    return true;
+}
+
+bool encode::setSlaveMetadata()
+{
+    // set slave metadata variables
+    for (int i = 1; i < symbolNumber; i++)
+    {
+        int SS, SE, V, E1 = 0, E2 = 0;
+        int metadata_length = 2; // Part I length
+        // SS and V
+        if (symbolVersions[i].x != symbolVersions[symbols[i].host].x)
+        {
+            SS = 1;
+            V = symbolVersions[i].x - 1;
+            metadata_length += 5;
+        }
+        else if (symbolVersions[i].y != symbolVersions[symbols[i].host].y)
+        {
+            SS = 1;
+            V = symbolVersions[i].y - 1;
+            metadata_length += 5;
+        }
+        else
+        {
+            SS = 0;
+        }
+        // SE and E
+        if (symbolEccLevels[i] == 0 || symbolEccLevels[i] == symbolEccLevels[symbols[i].host])
+        {
+            SE = 0;
+        }
+        else
+        {
+            SE = 1;
+            E1 = ecclevel2wcwr[symbolEccLevels[i]][0] - 3;
+            E2 = ecclevel2wcwr[symbolEccLevels[i]][1] - 4;
+            metadata_length += 6;
+        }
+        // write slave metadata
+        symbols[i].metadata.resize(metadata_length);
+        // Part I
+        symbols[i].metadata[0] = SS;
+        symbols[i].metadata[1] = SE;
+        // Part II
+        if (SS == 1)
+        {
+            convert_dec_to_bin(V, symbols[i].metadata, 2, 5);
+        }
+        if (SE == 1)
+        {
+            int start_pos = (SS == 1) ? 7 : 2;
+            convert_dec_to_bin(E1, symbols[i].metadata, start_pos, 3);
+            convert_dec_to_bin(E2, symbols[i].metadata, start_pos + 3, 3);
+        }
+    }
+    return true;
+}
+
+void interleaveData(std::string &data)
+{
+    setSeed(INTERLEAVE_SEED);
+    for (int i = 0; i < data.length(); i++)
+    {
+        int pos = (int)((float)lcg64_temper() / (float)UINT32_MAX * (data.length() - i));
+        char tmp = data[data.length() - 1 - i];
+        data[data.length() - 1 - i] = data[pos];
+        data[pos] = tmp;
+    }
+}
+
+int encode::generateJABCode(std::string &data)
+{
+    // Check data
+    if (data.empty())
+    {
+        std::cout << "No input data specified!";
+        return 2;
+    }
+    if (data.length() == 0)
+    {
+        std::cout << "No input data specified!";
+        return 2;
+    }
+
+    // initialize symbols and set metadata in symbols
+    if (!InitSymbols())
+        return 3;
+
+    // get the optimal encoded length and encoding sequence
+    encodeSeq = analyzeInputData(data);
+    if (encodeSeq.empty())
+    {
+        std::cout << "Analyzing input data failed";
+        return 1;
+    }
+    // encode data using optimal encoding modes
+    encodeData(data);
+
+    // set master symbol version if not given
+    if (symbolNumber == 1 && (symbolVersions[0].x == 0 || symbolVersions[0].y == 0))
+    {
+        if (!setMasterSymbolVersion())
+        {
+            encodedData.clear();
+            return 4;
+        }
+    }
+    // set metadata for slave symbols
+    if (!setSlaveMetadata())
+    {
+        encodedData.clear();
+        return 1;
+    }
+    // assign encoded data into symbols
+    if (!fitDataIntoSymbols())
+    {
+        encodedData.clear();
+        return 4;
+    }
+    encodedData.clear();
+    // set master metadata
+    if (!isDefaultMode())
+    {
+        if (!encodeMasterMetadata())
+        {
+            std::cout << "Encoding master symbol metadata failed";
+            return 1;
+        }
+    }
+
+    // encode each symbol in turn
+    for (int i = 0; i < symbolNumber; i++)
+    {
+        // error correction for data
+        data *ecc_encoded_data = encodeLDPC(symbols[i].data, symbols[i].wcwr);
+        if (ecc_encoded_data == NULL)
+        {
+            std::cout << "LDPC encoding for the data in symbol %d failed", i))
+            return 1;
+        }
+        // interleave
+        interleaveData(ecc_encoded_data);
+        // create Matrix
+        boolean cm_flag = createMatrix(enc, i, ecc_encoded_data);
+        free(ecc_encoded_data);
+        if (!cm_flag)
+        {
+            std::cout << "Creating matrix for symbol %d failed", i))
+            return 1;
+        }
+    }
+
+    // mask all symbols in the code
+    code *cp = getCodePara(enc);
+    if (!cp)
+    {
+        return 1;
+    }
+    if (isDefaultMode(enc)) // default mode
+    {
+        maskSymbols(enc, DEFAULT_MASKING_REFERENCE, 0, 0);
+    }
+    else
+    {
+        int mask_reference = maskCode(enc, cp);
+        if (mask_reference < 0)
+        {
+            free(cp->row_height);
+            free(cp->col_width);
+            free(cp);
+            return 1;
+        }
+#if TEST_MODE
+        REPORT_INFO(("mask reference: %d", mask_reference))
+#endif
+        if (mask_reference != DEFAULT_MASKING_REFERENCE)
+        {
+            // re-encode PartII of master symbol metadata
+            updateMasterMetadataPartII(enc, mask_reference);
+            // update the masking reference in master symbol metadata
+            placeMasterMetadataPartII(enc);
+        }
+    }
+
+    // create the code bitmap
+    boolean cb_flag = createBitmap(enc, cp);
+    free(cp->row_height);
+    free(cp->col_width);
+    free(cp);
+    if (!cb_flag)
+    {
+        std::cout << "Creating the code bitmap failed"))
+        return 1;
+    }
+    return 0;
 }
 
 int main()
