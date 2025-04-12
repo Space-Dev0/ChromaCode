@@ -404,7 +404,7 @@ void getOptimalECC(int capacity, int net_data_length, int *wcwr)
     }
 }
 
-std::string encodeData(std::string data, int encodedLength, std::vector<int> encodeSeq)
+std::string encodeData(std::string data, int encodedLength, std::vector<int> &encodeSeq)
 {
     std::string encodedData;
 
