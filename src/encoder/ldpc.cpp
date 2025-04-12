@@ -314,6 +314,7 @@ std::vector<int32_t> createGeneratorMatrix(std::vector<int32_t> matrixA,
 
 std::string encodeLDPC(std::string data, std::vector<int32_t> coderate_params)
 {
+  std::string emptyString;
   int32_t matrix_rank = 0;
   int32_t wc, wr, Pg, Pn;
   wc = coderate_params[0];
@@ -366,14 +367,14 @@ std::string encodeLDPC(std::string data, std::vector<int32_t> coderate_params)
   if (GaussJordan(matrixA, wc, wr, &matrix_rank, encode))
   {
     reportError("Gauss Jordan Elimination in LDPC encoder failed.");
-    return NULL;
+    return emptyString;
   }
   std::vector<int32_t> G =
       createGeneratorMatrix(matrixA, Pg_sub_block - matrix_rank);
   if (G.empty())
   {
     reportError("Generator matrix could not be created in LDPC encoder.");
-    return NULL;
+    return emptyString;
   }
 
   std::string ecc_encoded_data;
@@ -410,14 +411,14 @@ std::string encodeLDPC(std::string data, std::vector<int32_t> coderate_params)
     if (GaussJordan(matrixA, wc, wr, &matrix_rank, encode))
     {
       reportError("Gauss Jordan Elimination in LDPC encoder failed.");
-      return NULL;
+      return emptyString;
     }
     std::vector<int32_t> G =
         createGeneratorMatrix(matrixA, Pg_sub_block - matrix_rank);
     if (!G.size())
     {
       reportError("Generator matrix could not be created in LDPC encoder.");
-      return NULL;
+      return emptyString;
     }
     offset = ceil((Pg_sub_block - matrix_rank) / (float_t)32);
     for (int32_t i = 0; i < Pg_sub_block; i++)
