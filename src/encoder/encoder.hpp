@@ -29,6 +29,20 @@
 #define MAX_ALIGNMENT_NUMBER 9
 #define COLOR_PALETTE_NUMBER 4
 
+#define MASTER_METADATA_X 6
+#define MASTER_METADATA_Y 1
+
+#define FP0_CORE_COLOR 0
+#define FP1_CORE_COLOR 0
+#define FP2_CORE_COLOR 6
+#define FP3_CORE_COLOR 3
+
+#define AP0_CORE_COLOR 3
+#define AP1_CORE_COLOR 3
+#define AP2_CORE_COLOR 3
+#define AP3_CORE_COLOR 3
+#define APX_CORE_COLOR 6
+
 #define VERSION2SIZE(x) (x * 4 + 17)
 #define SIZE2VERSION(x) ((x - 17) / 4)
 #define MAX(a, b) ({__typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
@@ -42,7 +56,7 @@ struct rgb
     constexpr rgb(uint8_t a, uint8_t b, uint8_t c) : R(a), G(b), B(c) {}
 };
 
-struct vector2d
+typedef struct vector2d
 {
     int x;
     int y;
@@ -67,6 +81,14 @@ constexpr rgb magenta(255, 0, 255);
 constexpr rgb yellow(255, 255, 0);
 constexpr rgb white(255, 255, 255);
 
+constexpr int master_palette_placement_index[4][8] =
+    {{0, 3, 5, 6, 1, 2, 4, 7}, {0, 6, 5, 3, 1, 2, 4, 7}, {6, 0, 5, 3, 1, 2, 4, 7}, {3, 0, 5, 6, 1, 2, 4, 7}};
+
+constexpr int slave_palette_placement_index[8] = {3, 6, 5, 0, 1, 2, 4, 7};
+
+constexpr vector2d slave_palette_position[32] = {
+    {4, 5}, {4, 6}, {4, 7}, {4, 8}, {4, 9}, {4, 10}, {4, 11}, {4, 12}, {5, 12}, {5, 11}, {5, 10}, {5, 9}, {5, 8}, {5, 7}, {5, 6}, {5, 5}, {6, 5}, {6, 6}, {6, 7}, {6, 8}, {6, 9}, {6, 10}, {6, 11}, {6, 12}, {7, 12}, {7, 11}, {7, 10}, {7, 9}, {7, 8}, {7, 7}, {7, 6}, {7, 5}};
+
 constexpr int modeSwitch[7][16] =
     {{-1, 28, 29, -1, -1, 30, -1, -1, -1, -1, 27, 125, -1, 124, 126, -1},
      {126, -1, 29, -1, -1, 30, -1, 28, -1, 127, 27, 125, -1, 124, -1, 127},
@@ -77,6 +99,14 @@ constexpr int modeSwitch[7][16] =
      {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
 
 constexpr int characterSize[] = {5, 5, 4, 4, 5, 6, 8};
+
+constexpr uint8_t fp0_core_color_index[] = {0, 0, FP0_CORE_COLOR, 0, 0, 0, 0, 0};
+constexpr uint8_t fp1_core_color_index[] = {0, 0, FP1_CORE_COLOR, 0, 0, 0, 0, 0};
+constexpr uint8_t fp2_core_color_index[] = {0, 2, FP2_CORE_COLOR, 14, 30, 60, 124, 252};
+constexpr uint8_t fp3_core_color_index[] = {0, 3, FP3_CORE_COLOR, 3, 7, 15, 15, 31};
+
+constexpr uint8_t apn_core_color_index[] = {0, 3, AP0_CORE_COLOR, 3, 7, 15, 15, 31};
+constexpr uint8_t apx_core_color_index[] = {0, 2, APX_CORE_COLOR, 14, 30, 60, 124, 252};
 
 constexpr int latchShiftTo[14][14] =
     {{0, 5, 5, ENC_MAX, ENC_MAX, 5, ENC_MAX, ENC_MAX, ENC_MAX, ENC_MAX, 5, 7, ENC_MAX, 11},
@@ -156,6 +186,8 @@ constexpr vector2d symbolPos[MAX_SYMBOL_NUMBER] =
      {4, 1},
      {-5, 0},
      {5, 0}};
+
+constexpr uint8_t nc_color_encode_table[8][2] = {{0, 0}, {0, 3}, {0, 6}, {3, 0}, {3, 3}, {3, 6}, {6, 0}, {6, 3}};
 
 constexpr int encodingTable[MAX_SIZE_ENCODING_MODE][ENCODING_MODES] =
     {
@@ -425,33 +457,40 @@ constexpr int apNum[32] = {2, 2, 2, 2, 2,
                            8, 8, 8, 8,
                            9, 9, 9};
 
-class symbol;
+constexpr int apPos[32][9] = {{4, 18, 0, 0, 0, 0, 0, 0, 0},
+                              {4, 22, 0, 0, 0, 0, 0, 0, 0},
+                              {4, 26, 0, 0, 0, 0, 0, 0, 0},
+                              {4, 30, 0, 0, 0, 0, 0, 0, 0},
+                              {4, 34, 0, 0, 0, 0, 0, 0, 0},
+                              {4, 17, 38, 0, 0, 0, 0, 0, 0},
+                              {4, 20, 42, 0, 0, 0, 0, 0, 0},
+                              {4, 23, 46, 0, 0, 0, 0, 0, 0},
+                              {4, 26, 50, 0, 0, 0, 0, 0, 0},
+                              {4, 14, 32, 54, 0, 0, 0, 0, 0},
+                              {4, 17, 39, 58, 0, 0, 0, 0, 0},
+                              {4, 20, 46, 62, 0, 0, 0, 0, 0},
+                              {4, 23, 44, 66, 0, 0, 0, 0, 0},
+                              {4, 26, 37, 51, 70, 0, 0, 0, 0},
+                              {4, 14, 36, 58, 74, 0, 0, 0, 0},
+                              {4, 17, 39, 56, 78, 0, 0, 0, 0},
+                              {4, 20, 42, 63, 82, 0, 0, 0, 0},
+                              {4, 23, 38, 54, 70, 86, 0, 0, 0},
+                              {4, 26, 38, 56, 77, 90, 0, 0, 0},
+                              {4, 14, 33, 53, 72, 94, 0, 0, 0},
+                              {4, 17, 38, 59, 79, 98, 0, 0, 0},
+                              {4, 20, 36, 53, 70, 86, 102, 0, 0},
+                              {4, 23, 36, 55, 74, 93, 106, 0, 0},
+                              {4, 26, 36, 58, 79, 100, 110, 0, 0},
+                              {4, 14, 36, 58, 80, 92, 114, 0, 0},
+                              {4, 17, 34, 52, 70, 88, 99, 118, 0},
+                              {4, 20, 37, 54, 72, 89, 106, 122, 0},
+                              {4, 23, 38, 56, 74, 92, 113, 126, 0},
+                              {4, 26, 36, 58, 78, 98, 120, 130, 0},
+                              {4, 14, 32, 49, 67, 84, 102, 112, 134},
+                              {4, 17, 35, 53, 71, 89, 107, 119, 138},
+                              {4, 20, 38, 55, 73, 91, 108, 126, 142}};
 
-class encode
-{
-private:
-    void setDefaultPalette(int color_number, std::vector<rgb> &palette);
-    void setDefaultEccLevels(int symbol_number, std::vector<uint8_t> &ecc_levels);
-    void swap_byte(uint8_t *a, uint8_t *b);
-    void swap_int(int *a, int *b);
-    // void convert_dec_to_bin(int dec, std::vector<bool> &bin, int start_position, int length);
-
-public:
-    int colorNumber;
-    int symbolNumber;
-    int moduleSize{DEFAULT_MODULE_SIZE};
-    int masterSymbolWidth{0};
-    int masterSymbolHeight{0};
-    std::vector<rgb> palette;
-    std::vector<vector2d> symbolVersions;
-    std::vector<uint8_t> symbolEccLevels;
-    std::vector<int> symbolPositions;
-    std::vector<symbol> symbols;
-    std::vector<bitmap> bitmaps;
-    std::vector<int> analyzeInputData(std::string &input, int *encoded_length);
-    encode(int color_number, int symbol_number);
-    ~encode();
-};
+class encode;
 
 class symbol
 {
@@ -467,6 +506,45 @@ public:
     std::vector<uint8_t> dataMap;
     std::string metadata;
     std::vector<uint8_t> matrix;
+    void getOptimalECC(int capacity, int net_data_length);
+    int getSymbolCapacity(encode &enc);
+    int getMetadataLength(encode &enc);
+    bool createMatrix(encode &enc, std::string &ecc_encoded_data);
+};
+
+class encode
+{
+    friend class symbol;
+
+private:
+    void setDefaultPalette(int color_number, std::vector<rgb> &palette);
+    void setDefaultEccLevels(int symbol_number, std::vector<uint8_t> &ecc_levels);
+    void swap_byte(uint8_t *a, uint8_t *b);
+    void swap_int(int *a, int *b);
+    std::vector<int> encodeSeq;
+    bool isDefaultMode();
+    void getNextMetadataModuleInMaster(int matrix_height, int matrix_width, int next_module_count, int *x, int *y);
+    void convert_dec_to_bin(int dec, std::string &bin, int start_position, int length);
+
+public:
+    int colorNumber;
+    int symbolNumber;
+    int moduleSize{DEFAULT_MODULE_SIZE};
+    int masterSymbolWidth{0};
+    int masterSymbolHeight{0};
+    std::vector<rgb> palette;
+    std::vector<vector2d> symbolVersions;
+    std::vector<uint8_t> symbolEccLevels;
+    std::vector<int> symbolPositions;
+    std::vector<symbol> symbols;
+    std::vector<bitmap> bitmaps;
+    std::vector<int> analyzeInputData(std::string &input, int *encoded_length);
+    bool encodeMasterMetadata();
+    bool updateMasterMetadataPartII(int mask_ref);
+    void placeMasterMetadataPartII();
+    std::string encodeData(std::string &data, int encodedLength);
+    encode(int color_number, int symbol_number);
+    ~encode();
 };
 
 #endif
