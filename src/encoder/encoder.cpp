@@ -603,10 +603,11 @@ bool encode::encodeMasterMetadata()
     // encode each part of master metadata
     int wcwr[2] = {2, -1};
     // Part I
-    std::string encoded_partI; //= encodeLDPC(partI, wcwr);
+    std::vector<int> swcwr{wcwr[0], wcwr[1]};
+    std::string encoded_partI = encodeLDPC(partI, swcwr);
 
     // Part II
-    std::string encoded_partII; //= encodeLDPC(partII, wcwr);
+    std::string encoded_partII = encodeLDPC(partII, swcwr);
 
     int encoded_metadata_length = encoded_partI.length() + encoded_partII.length();
 
@@ -638,7 +639,8 @@ bool encode::updateMasterMetadataPartII(int mask_ref)
 
     // encode new PartII
     int wcwr[2] = {2, -1};
-    std::string encoded_partII; // = encodeLDPC(partII, wcwr);
+    std::vector<int> swcwr{wcwr[0], wcwr[1]};
+    std::string encoded_partII = encodeLDPC(partII, swcwr);
     // update metadata
     symbols[0].metadata.replace(MASTER_METADATA_PART1_LENGTH, encoded_partII.length(), encoded_partII);
 
@@ -768,18 +770,18 @@ void getColorPaletteIndex(uint8_t *index, int index_size, int colorNumber)
     }
 }
 
-bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
+bool encode::createMatrix(int index, std::string &ecc_encoded_data)
 {
     // Allocate matrix
-    enc.symbols[index].matrix.assign(enc.symbols[index].side_size.x * enc.symbols[index].side_size.y, 0);
+    symbols[index].matrix.assign(symbols[index].side_size.x * symbols[index].side_size.y, 0);
     // Allocate boolean matrix
-    enc.symbols[index].dataMap.assign(enc.symbols[index].side_size.x * enc.symbols[index].side_size.y, 1);
+    symbols[index].dataMap.assign(symbols[index].side_size.x * symbols[index].side_size.y, 1);
     // set alignment patterns
-    int Nc = log(enc.colorNumber) / log(2.0) - 1;
+    int Nc = log(colorNumber) / log(2.0) - 1;
     uint8_t apx_core_color = apx_core_color_index[Nc];
     uint8_t apx_peri_color = apn_core_color_index[Nc];
-    int side_ver_x_index = SIZE2VERSION(enc.symbols[index].side_size.x) - 1;
-    int side_ver_y_index = SIZE2VERSION(enc.symbols[index].side_size.y) - 1;
+    int side_ver_x_index = SIZE2VERSION(symbols[index].side_size.x) - 1;
+    int side_ver_y_index = SIZE2VERSION(symbols[index].side_size.y) - 1;
     for (int x = 0; x < apNum[side_ver_x_index]; x++)
     {
         uint8_t left;
@@ -794,40 +796,40 @@ bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
             // left alignment patterns
             if (left == 1 && (x != 0 || y != 0) && (x != 0 || y != apNum[side_ver_y_index] - 1) && (x != apNum[side_ver_x_index] - 1 || y != 0) && (x != apNum[side_ver_x_index] - 1 || y != apNum[side_ver_y_index] - 1))
             {
-                enc.symbols[index].matrix[(y_offset - 1) * enc.symbols[index].side_size.x + x_offset - 1] =
-                    enc.symbols[index].matrix[(y_offset - 1) * enc.symbols[index].side_size.x + x_offset] =
-                        enc.symbols[index].matrix[(y_offset)*enc.symbols[index].side_size.x + x_offset - 1] =
-                            enc.symbols[index].matrix[(y_offset)*enc.symbols[index].side_size.x + x_offset + 1] =
-                                enc.symbols[index].matrix[(y_offset + 1) * enc.symbols[index].side_size.x + x_offset] =
-                                    enc.symbols[index].matrix[(y_offset + 1) * enc.symbols[index].side_size.x + x_offset + 1] = apx_peri_color;
-                enc.symbols[index].matrix[(y_offset)*enc.symbols[index].side_size.x + x_offset] = apx_core_color;
+                symbols[index].matrix[(y_offset - 1) * symbols[index].side_size.x + x_offset - 1] =
+                    symbols[index].matrix[(y_offset - 1) * symbols[index].side_size.x + x_offset] =
+                        symbols[index].matrix[(y_offset)*symbols[index].side_size.x + x_offset - 1] =
+                            symbols[index].matrix[(y_offset)*symbols[index].side_size.x + x_offset + 1] =
+                                symbols[index].matrix[(y_offset + 1) * symbols[index].side_size.x + x_offset] =
+                                    symbols[index].matrix[(y_offset + 1) * symbols[index].side_size.x + x_offset + 1] = apx_peri_color;
+                symbols[index].matrix[(y_offset)*symbols[index].side_size.x + x_offset] = apx_core_color;
 
-                enc.symbols[index].dataMap[(y_offset - 1) * enc.symbols[index].side_size.x + x_offset - 1] =
-                    enc.symbols[index].dataMap[(y_offset - 1) * enc.symbols[index].side_size.x + x_offset] =
-                        enc.symbols[index].dataMap[(y_offset)*enc.symbols[index].side_size.x + x_offset - 1] =
-                            enc.symbols[index].dataMap[(y_offset)*enc.symbols[index].side_size.x + x_offset + 1] =
-                                enc.symbols[index].dataMap[(y_offset + 1) * enc.symbols[index].side_size.x + x_offset] =
-                                    enc.symbols[index].dataMap[(y_offset + 1) * enc.symbols[index].side_size.x + x_offset + 1] =
-                                        enc.symbols[index].dataMap[(y_offset)*enc.symbols[index].side_size.x + x_offset] = 0;
+                symbols[index].dataMap[(y_offset - 1) * symbols[index].side_size.x + x_offset - 1] =
+                    symbols[index].dataMap[(y_offset - 1) * symbols[index].side_size.x + x_offset] =
+                        symbols[index].dataMap[(y_offset)*symbols[index].side_size.x + x_offset - 1] =
+                            symbols[index].dataMap[(y_offset)*symbols[index].side_size.x + x_offset + 1] =
+                                symbols[index].dataMap[(y_offset + 1) * symbols[index].side_size.x + x_offset] =
+                                    symbols[index].dataMap[(y_offset + 1) * symbols[index].side_size.x + x_offset + 1] =
+                                        symbols[index].dataMap[(y_offset)*symbols[index].side_size.x + x_offset] = 0;
             }
             // right alignment patterns
             else if (left == 0 && (x != 0 || y != 0) && (x != 0 || y != apNum[side_ver_y_index] - 1) && (x != apNum[side_ver_x_index] - 1 || y != 0) && (x != apNum[side_ver_x_index] - 1 || y != apNum[side_ver_y_index] - 1))
             {
-                enc.symbols[index].matrix[(y_offset - 1) * enc.symbols[index].side_size.x + x_offset + 1] =
-                    enc.symbols[index].matrix[(y_offset - 1) * enc.symbols[index].side_size.x + x_offset] =
-                        enc.symbols[index].matrix[(y_offset)*enc.symbols[index].side_size.x + x_offset - 1] =
-                            enc.symbols[index].matrix[(y_offset)*enc.symbols[index].side_size.x + x_offset + 1] =
-                                enc.symbols[index].matrix[(y_offset + 1) * enc.symbols[index].side_size.x + x_offset] =
-                                    enc.symbols[index].matrix[(y_offset + 1) * enc.symbols[index].side_size.x + x_offset - 1] = apx_peri_color;
-                enc.symbols[index].matrix[(y_offset)*enc.symbols[index].side_size.x + x_offset] = apx_core_color;
+                symbols[index].matrix[(y_offset - 1) * symbols[index].side_size.x + x_offset + 1] =
+                    symbols[index].matrix[(y_offset - 1) * symbols[index].side_size.x + x_offset] =
+                        symbols[index].matrix[(y_offset)*symbols[index].side_size.x + x_offset - 1] =
+                            symbols[index].matrix[(y_offset)*symbols[index].side_size.x + x_offset + 1] =
+                                symbols[index].matrix[(y_offset + 1) * symbols[index].side_size.x + x_offset] =
+                                    symbols[index].matrix[(y_offset + 1) * symbols[index].side_size.x + x_offset - 1] = apx_peri_color;
+                symbols[index].matrix[(y_offset)*symbols[index].side_size.x + x_offset] = apx_core_color;
 
-                enc.symbols[index].dataMap[(y_offset - 1) * enc.symbols[index].side_size.x + x_offset + 1] =
-                    enc.symbols[index].dataMap[(y_offset - 1) * enc.symbols[index].side_size.x + x_offset] =
-                        enc.symbols[index].dataMap[(y_offset)*enc.symbols[index].side_size.x + x_offset - 1] =
-                            enc.symbols[index].dataMap[(y_offset)*enc.symbols[index].side_size.x + x_offset + 1] =
-                                enc.symbols[index].dataMap[(y_offset + 1) * enc.symbols[index].side_size.x + x_offset] =
-                                    enc.symbols[index].dataMap[(y_offset + 1) * enc.symbols[index].side_size.x + x_offset - 1] =
-                                        enc.symbols[index].dataMap[(y_offset)*enc.symbols[index].side_size.x + x_offset] = 0;
+                symbols[index].dataMap[(y_offset - 1) * symbols[index].side_size.x + x_offset + 1] =
+                    symbols[index].dataMap[(y_offset - 1) * symbols[index].side_size.x + x_offset] =
+                        symbols[index].dataMap[(y_offset)*symbols[index].side_size.x + x_offset - 1] =
+                            symbols[index].dataMap[(y_offset)*symbols[index].side_size.x + x_offset + 1] =
+                                symbols[index].dataMap[(y_offset + 1) * symbols[index].side_size.x + x_offset] =
+                                    symbols[index].dataMap[(y_offset + 1) * symbols[index].side_size.x + x_offset - 1] =
+                                        symbols[index].dataMap[(y_offset)*symbols[index].side_size.x + x_offset] = 0;
             }
             if (left == 0)
                 left = 1;
@@ -855,26 +857,26 @@ bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
                         fp3_color_index = (k % 2) ? fp0_core_color_index[Nc] : fp3_core_color_index[Nc];
 
                         // upper pattern
-                        enc.symbols[index].matrix[(DISTANCE_TO_BORDER - (i + 1)) * enc.symbols[index].side_size.x + DISTANCE_TO_BORDER - j - 1] =
-                            enc.symbols[index].matrix[(DISTANCE_TO_BORDER + (i - 1)) * enc.symbols[index].side_size.x + DISTANCE_TO_BORDER + j - 1] = fp0_color_index;
-                        enc.symbols[index].dataMap[(DISTANCE_TO_BORDER - (i + 1)) * enc.symbols[index].side_size.x + DISTANCE_TO_BORDER - j - 1] =
-                            enc.symbols[index].dataMap[(DISTANCE_TO_BORDER + (i - 1)) * enc.symbols[index].side_size.x + DISTANCE_TO_BORDER + j - 1] = 0;
+                        symbols[index].matrix[(DISTANCE_TO_BORDER - (i + 1)) * symbols[index].side_size.x + DISTANCE_TO_BORDER - j - 1] =
+                            symbols[index].matrix[(DISTANCE_TO_BORDER + (i - 1)) * symbols[index].side_size.x + DISTANCE_TO_BORDER + j - 1] = fp0_color_index;
+                        symbols[index].dataMap[(DISTANCE_TO_BORDER - (i + 1)) * symbols[index].side_size.x + DISTANCE_TO_BORDER - j - 1] =
+                            symbols[index].dataMap[(DISTANCE_TO_BORDER + (i - 1)) * symbols[index].side_size.x + DISTANCE_TO_BORDER + j - 1] = 0;
 
-                        enc.symbols[index].matrix[(DISTANCE_TO_BORDER - (i + 1)) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
-                            enc.symbols[index].matrix[(DISTANCE_TO_BORDER + (i - 1)) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = fp1_color_index;
-                        enc.symbols[index].dataMap[(DISTANCE_TO_BORDER - (i + 1)) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
-                            enc.symbols[index].dataMap[(DISTANCE_TO_BORDER + (i - 1)) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = 0;
+                        symbols[index].matrix[(DISTANCE_TO_BORDER - (i + 1)) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
+                            symbols[index].matrix[(DISTANCE_TO_BORDER + (i - 1)) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = fp1_color_index;
+                        symbols[index].dataMap[(DISTANCE_TO_BORDER - (i + 1)) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
+                            symbols[index].dataMap[(DISTANCE_TO_BORDER + (i - 1)) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = 0;
 
                         // lower pattern
-                        enc.symbols[index].matrix[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
-                            enc.symbols[index].matrix[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = fp2_color_index;
-                        enc.symbols[index].dataMap[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
-                            enc.symbols[index].dataMap[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = 0;
+                        symbols[index].matrix[(symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
+                            symbols[index].matrix[(symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = fp2_color_index;
+                        symbols[index].dataMap[(symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
+                            symbols[index].dataMap[(symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = 0;
 
-                        enc.symbols[index].matrix[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * enc.symbols[index].side_size.x + (DISTANCE_TO_BORDER)-j - 1] =
-                            enc.symbols[index].matrix[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * enc.symbols[index].side_size.x + (DISTANCE_TO_BORDER) + j - 1] = fp3_color_index;
-                        enc.symbols[index].dataMap[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * enc.symbols[index].side_size.x + (DISTANCE_TO_BORDER)-j - 1] =
-                            enc.symbols[index].dataMap[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * enc.symbols[index].side_size.x + (DISTANCE_TO_BORDER) + j - 1] = 0;
+                        symbols[index].matrix[(symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * symbols[index].side_size.x + (DISTANCE_TO_BORDER)-j - 1] =
+                            symbols[index].matrix[(symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * symbols[index].side_size.x + (DISTANCE_TO_BORDER) + j - 1] = fp3_color_index;
+                        symbols[index].dataMap[(symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * symbols[index].side_size.x + (DISTANCE_TO_BORDER)-j - 1] =
+                            symbols[index].dataMap[(symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * symbols[index].side_size.x + (DISTANCE_TO_BORDER) + j - 1] = 0;
                     }
                 }
             }
@@ -897,26 +899,26 @@ bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
                                 ap2_color_index =
                                     ap3_color_index = (k % 2) ? apx_core_color_index[Nc] : apn_core_color_index[Nc];
                         // upper pattern
-                        enc.symbols[index].matrix[(DISTANCE_TO_BORDER - (i + 1)) * enc.symbols[index].side_size.x + DISTANCE_TO_BORDER - j - 1] =
-                            enc.symbols[index].matrix[(DISTANCE_TO_BORDER + (i - 1)) * enc.symbols[index].side_size.x + DISTANCE_TO_BORDER + j - 1] = ap0_color_index;
-                        enc.symbols[index].dataMap[(DISTANCE_TO_BORDER - (i + 1)) * enc.symbols[index].side_size.x + DISTANCE_TO_BORDER - j - 1] =
-                            enc.symbols[index].dataMap[(DISTANCE_TO_BORDER + (i - 1)) * enc.symbols[index].side_size.x + DISTANCE_TO_BORDER + j - 1] = 0;
+                        symbols[index].matrix[(DISTANCE_TO_BORDER - (i + 1)) * symbols[index].side_size.x + DISTANCE_TO_BORDER - j - 1] =
+                            symbols[index].matrix[(DISTANCE_TO_BORDER + (i - 1)) * symbols[index].side_size.x + DISTANCE_TO_BORDER + j - 1] = ap0_color_index;
+                        symbols[index].dataMap[(DISTANCE_TO_BORDER - (i + 1)) * symbols[index].side_size.x + DISTANCE_TO_BORDER - j - 1] =
+                            symbols[index].dataMap[(DISTANCE_TO_BORDER + (i - 1)) * symbols[index].side_size.x + DISTANCE_TO_BORDER + j - 1] = 0;
 
-                        enc.symbols[index].matrix[(DISTANCE_TO_BORDER - (i + 1)) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
-                            enc.symbols[index].matrix[(DISTANCE_TO_BORDER + (i - 1)) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = ap1_color_index;
-                        enc.symbols[index].dataMap[(DISTANCE_TO_BORDER - (i + 1)) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
-                            enc.symbols[index].dataMap[(DISTANCE_TO_BORDER + (i - 1)) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = 0;
+                        symbols[index].matrix[(DISTANCE_TO_BORDER - (i + 1)) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
+                            symbols[index].matrix[(DISTANCE_TO_BORDER + (i - 1)) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = ap1_color_index;
+                        symbols[index].dataMap[(DISTANCE_TO_BORDER - (i + 1)) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
+                            symbols[index].dataMap[(DISTANCE_TO_BORDER + (i - 1)) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = 0;
 
                         // lower pattern
-                        enc.symbols[index].matrix[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
-                            enc.symbols[index].matrix[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = ap2_color_index;
-                        enc.symbols[index].dataMap[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
-                            enc.symbols[index].dataMap[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * enc.symbols[index].side_size.x + enc.symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = 0;
+                        symbols[index].matrix[(symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
+                            symbols[index].matrix[(symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = ap2_color_index;
+                        symbols[index].dataMap[(symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) - j - 1] =
+                            symbols[index].dataMap[(symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * symbols[index].side_size.x + symbols[index].side_size.x - (DISTANCE_TO_BORDER - 1) + j - 1] = 0;
 
-                        enc.symbols[index].matrix[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * enc.symbols[index].side_size.x + (DISTANCE_TO_BORDER)-j - 1] =
-                            enc.symbols[index].matrix[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * enc.symbols[index].side_size.x + (DISTANCE_TO_BORDER) + j - 1] = ap3_color_index;
-                        enc.symbols[index].dataMap[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * enc.symbols[index].side_size.x + (DISTANCE_TO_BORDER)-j - 1] =
-                            enc.symbols[index].dataMap[(enc.symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * enc.symbols[index].side_size.x + (DISTANCE_TO_BORDER) + j - 1] = 0;
+                        symbols[index].matrix[(symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * symbols[index].side_size.x + (DISTANCE_TO_BORDER)-j - 1] =
+                            symbols[index].matrix[(symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * symbols[index].side_size.x + (DISTANCE_TO_BORDER) + j - 1] = ap3_color_index;
+                        symbols[index].dataMap[(symbols[index].side_size.y - DISTANCE_TO_BORDER + i) * symbols[index].side_size.x + (DISTANCE_TO_BORDER)-j - 1] =
+                            symbols[index].dataMap[(symbols[index].side_size.y - DISTANCE_TO_BORDER - i) * symbols[index].side_size.x + (DISTANCE_TO_BORDER) + j - 1] = 0;
                     }
                 }
             }
@@ -924,16 +926,16 @@ bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
     }
 
     // Metadata and color palette placement
-    int nb_of_bits_per_mod = log(enc.colorNumber) / log(2);
+    int nb_of_bits_per_mod = log(colorNumber) / log(2);
     int color_index;
     int module_count = 0;
     int x;
     int y;
 
     // get color index for color palette
-    int palette_index_size = enc.colorNumber > 64 ? 64 : enc.colorNumber;
+    int palette_index_size = colorNumber > 64 ? 64 : colorNumber;
     uint8_t palette_index[palette_index_size];
-    getColorPaletteIndex(palette_index, palette_index_size, enc.colorNumber);
+    getColorPaletteIndex(palette_index, palette_index_size, colorNumber);
 
     if (index == 0) // place metadata and color palette in master symbol
     {
@@ -941,102 +943,102 @@ bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
         y = MASTER_METADATA_Y;
         int metadata_index = 0;
         // metadata Part I
-        if (!enc.isDefaultMode())
+        if (!isDefaultMode())
         {
-            while (metadata_index < enc.symbols[index].metadata.length() && metadata_index < MASTER_METADATA_PART1_LENGTH)
+            while (metadata_index < symbols[index].metadata.length() && metadata_index < MASTER_METADATA_PART1_LENGTH)
             {
                 // Read 3 bits from encoded PartI each time
-                uint8_t bit1 = enc.symbols[index].metadata[metadata_index + 0];
-                uint8_t bit2 = enc.symbols[index].metadata[metadata_index + 1];
-                uint8_t bit3 = enc.symbols[index].metadata[metadata_index + 2];
+                uint8_t bit1 = symbols[index].metadata[metadata_index + 0];
+                uint8_t bit2 = symbols[index].metadata[metadata_index + 1];
+                uint8_t bit3 = symbols[index].metadata[metadata_index + 2];
                 int val = (bit1 << 2) + (bit2 << 1) + bit3;
                 // place two modules according to the value of every 3 bits
                 for (int i = 0; i < 2; i++)
                 {
-                    color_index = nc_color_encode_table[val][i] % enc.colorNumber;
-                    enc.symbols[index].matrix[y * enc.symbols[index].side_size.x + x] = color_index;
-                    enc.symbols[index].dataMap[y * enc.symbols[index].side_size.x + x] = 0;
+                    color_index = nc_color_encode_table[val][i] % colorNumber;
+                    symbols[index].matrix[y * symbols[index].side_size.x + x] = color_index;
+                    symbols[index].dataMap[y * symbols[index].side_size.x + x] = 0;
                     module_count++;
-                    enc.getNextMetadataModuleInMaster(enc.symbols[index].side_size.y, enc.symbols[index].side_size.x, module_count, &x, &y);
+                    getNextMetadataModuleInMaster(symbols[index].side_size.y, symbols[index].side_size.x, module_count, &x, &y);
                 }
                 metadata_index += 3;
             }
         }
         // color palette
-        for (int i = 2; i < MIN(enc.colorNumber, 64); i++) // skip the first two colors in finder pattern
+        for (int i = 2; i < MIN(colorNumber, 64); i++) // skip the first two colors in finder pattern
         {
-            enc.symbols[index].matrix[y * enc.symbols[index].side_size.x + x] = palette_index[master_palette_placement_index[0][i] % enc.colorNumber];
-            enc.symbols[index].dataMap[y * enc.symbols[index].side_size.x + x] = 0;
+            symbols[index].matrix[y * symbols[index].side_size.x + x] = palette_index[master_palette_placement_index[0][i] % colorNumber];
+            symbols[index].dataMap[y * symbols[index].side_size.x + x] = 0;
             module_count++;
-            enc.getNextMetadataModuleInMaster(enc.symbols[index].side_size.y, enc.symbols[index].side_size.x, module_count, &x, &y);
+            getNextMetadataModuleInMaster(symbols[index].side_size.y, symbols[index].side_size.x, module_count, &x, &y);
 
-            enc.symbols[index].matrix[y * enc.symbols[index].side_size.x + x] = palette_index[master_palette_placement_index[1][i] % enc.colorNumber];
-            enc.symbols[index].dataMap[y * enc.symbols[index].side_size.x + x] = 0;
+            symbols[index].matrix[y * symbols[index].side_size.x + x] = palette_index[master_palette_placement_index[1][i] % colorNumber];
+            symbols[index].dataMap[y * symbols[index].side_size.x + x] = 0;
             module_count++;
-            enc.getNextMetadataModuleInMaster(enc.symbols[index].side_size.y, enc.symbols[index].side_size.x, module_count, &x, &y);
+            getNextMetadataModuleInMaster(symbols[index].side_size.y, symbols[index].side_size.x, module_count, &x, &y);
 
-            enc.symbols[index].matrix[y * enc.symbols[index].side_size.x + x] = palette_index[master_palette_placement_index[2][i] % enc.colorNumber];
-            enc.symbols[index].dataMap[y * enc.symbols[index].side_size.x + x] = 0;
+            symbols[index].matrix[y * symbols[index].side_size.x + x] = palette_index[master_palette_placement_index[2][i] % colorNumber];
+            symbols[index].dataMap[y * symbols[index].side_size.x + x] = 0;
             module_count++;
-            enc.getNextMetadataModuleInMaster(enc.symbols[index].side_size.y, enc.symbols[index].side_size.x, module_count, &x, &y);
+            getNextMetadataModuleInMaster(symbols[index].side_size.y, symbols[index].side_size.x, module_count, &x, &y);
 
-            enc.symbols[index].matrix[y * enc.symbols[index].side_size.x + x] = palette_index[master_palette_placement_index[3][i] % enc.colorNumber];
-            enc.symbols[index].dataMap[y * enc.symbols[index].side_size.x + x] = 0;
+            symbols[index].matrix[y * symbols[index].side_size.x + x] = palette_index[master_palette_placement_index[3][i] % colorNumber];
+            symbols[index].dataMap[y * symbols[index].side_size.x + x] = 0;
             module_count++;
-            enc.getNextMetadataModuleInMaster(enc.symbols[index].side_size.y, enc.symbols[index].side_size.x, module_count, &x, &y);
+            getNextMetadataModuleInMaster(symbols[index].side_size.y, symbols[index].side_size.x, module_count, &x, &y);
         }
         // metadata PartII
-        if (!enc.isDefaultMode())
+        if (!isDefaultMode())
         {
-            while (metadata_index < enc.symbols[index].metadata.length())
+            while (metadata_index < symbols[index].metadata.length())
             {
                 color_index = 0;
                 for (int j = 0; j < nb_of_bits_per_mod; j++)
                 {
-                    if (metadata_index < enc.symbols[index].metadata.length())
+                    if (metadata_index < symbols[index].metadata.length())
                     {
-                        color_index += ((int)enc.symbols[index].metadata[metadata_index]) << (nb_of_bits_per_mod - 1 - j);
+                        color_index += ((int)symbols[index].metadata[metadata_index]) << (nb_of_bits_per_mod - 1 - j);
                         metadata_index++;
                     }
                     else
                         break;
                 }
-                enc.symbols[index].matrix[y * enc.symbols[index].side_size.x + x] = color_index;
-                enc.symbols[index].dataMap[y * enc.symbols[index].side_size.x + x] = 0;
+                symbols[index].matrix[y * symbols[index].side_size.x + x] = color_index;
+                symbols[index].dataMap[y * symbols[index].side_size.x + x] = 0;
                 module_count++;
-                enc.getNextMetadataModuleInMaster(enc.symbols[index].side_size.y, enc.symbols[index].side_size.x, module_count, &x, &y);
+                getNextMetadataModuleInMaster(symbols[index].side_size.y, symbols[index].side_size.x, module_count, &x, &y);
             }
         }
     }
     else // place color palette in slave symbol
     {
         // color palette
-        int width = enc.symbols[index].side_size.x;
-        int height = enc.symbols[index].side_size.y;
-        for (int i = 2; i < MIN(enc.colorNumber, 64); i++) // skip the first two colors in alignment pattern
+        int width = symbols[index].side_size.x;
+        int height = symbols[index].side_size.y;
+        for (int i = 2; i < MIN(colorNumber, 64); i++) // skip the first two colors in alignment pattern
         {
             // left
-            enc.symbols[index].matrix[slave_palette_position[i - 2].y * width + slave_palette_position[i - 2].x] = palette_index[slave_palette_placement_index[i] % enc.colorNumber];
-            enc.symbols[index].dataMap[slave_palette_position[i - 2].y * width + slave_palette_position[i - 2].x] = 0;
+            symbols[index].matrix[slave_palette_position[i - 2].y * width + slave_palette_position[i - 2].x] = palette_index[slave_palette_placement_index[i] % colorNumber];
+            symbols[index].dataMap[slave_palette_position[i - 2].y * width + slave_palette_position[i - 2].x] = 0;
             // top
-            enc.symbols[index].matrix[slave_palette_position[i - 2].x * width + (width - 1 - slave_palette_position[i - 2].y)] = palette_index[slave_palette_placement_index[i] % enc.colorNumber];
-            enc.symbols[index].dataMap[slave_palette_position[i - 2].x * width + (width - 1 - slave_palette_position[i - 2].y)] = 0;
+            symbols[index].matrix[slave_palette_position[i - 2].x * width + (width - 1 - slave_palette_position[i - 2].y)] = palette_index[slave_palette_placement_index[i] % colorNumber];
+            symbols[index].dataMap[slave_palette_position[i - 2].x * width + (width - 1 - slave_palette_position[i - 2].y)] = 0;
             // right
-            enc.symbols[index].matrix[(height - 1 - slave_palette_position[i - 2].y) * width + (width - 1 - slave_palette_position[i - 2].x)] = palette_index[slave_palette_placement_index[i] % enc.colorNumber];
-            enc.symbols[index].dataMap[(height - 1 - slave_palette_position[i - 2].y) * width + (width - 1 - slave_palette_position[i - 2].x)] = 0;
+            symbols[index].matrix[(height - 1 - slave_palette_position[i - 2].y) * width + (width - 1 - slave_palette_position[i - 2].x)] = palette_index[slave_palette_placement_index[i] % colorNumber];
+            symbols[index].dataMap[(height - 1 - slave_palette_position[i - 2].y) * width + (width - 1 - slave_palette_position[i - 2].x)] = 0;
             // bottom
-            enc.symbols[index].matrix[(height - 1 - slave_palette_position[i - 2].x) * width + slave_palette_position[i - 2].y] = palette_index[slave_palette_placement_index[i] % enc.colorNumber];
-            enc.symbols[index].dataMap[(height - 1 - slave_palette_position[i - 2].x) * width + slave_palette_position[i - 2].y] = 0;
+            symbols[index].matrix[(height - 1 - slave_palette_position[i - 2].x) * width + slave_palette_position[i - 2].y] = palette_index[slave_palette_placement_index[i] % colorNumber];
+            symbols[index].dataMap[(height - 1 - slave_palette_position[i - 2].x) * width + slave_palette_position[i - 2].y] = 0;
         }
     }
 
     int written_mess_part = 0;
     int padding = 0;
-    for (int start_i = 0; start_i < enc.symbols[index].side_size.x; start_i++)
+    for (int start_i = 0; start_i < symbols[index].side_size.x; start_i++)
     {
-        for (int i = start_i; i < enc.symbols[index].side_size.x * enc.symbols[index].side_size.y; i = i + enc.symbols[index].side_size.x)
+        for (int i = start_i; i < symbols[index].side_size.x * symbols[index].side_size.y; i = i + symbols[index].side_size.x)
         {
-            if (enc.symbols[index].dataMap[i] != 0 && written_mess_part < ecc_encoded_data.length())
+            if (symbols[index].dataMap[i] != 0 && written_mess_part < ecc_encoded_data.length())
             {
                 color_index = 0;
                 for (int j = 0; j < nb_of_bits_per_mod; j++)
@@ -1053,9 +1055,9 @@ bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
                     }
                     written_mess_part++;
                 }
-                enc.symbols[index].matrix[i] = (char)color_index;
+                symbols[index].matrix[i] = (char)color_index;
             }
-            else if (enc.symbols[index].dataMap[i] != 0) // write padding bits
+            else if (symbols[index].dataMap[i] != 0) // write padding bits
             {
                 color_index = 0;
                 for (int j = 0; j < nb_of_bits_per_mod; j++)
@@ -1066,7 +1068,7 @@ bool symbol::createMatrix(encode &enc, std::string &ecc_encoded_data)
                     else
                         padding = 0;
                 }
-                enc.symbols[index].matrix[i] = (char)color_index; // i % enc.colorNumber;
+                symbols[index].matrix[i] = (char)color_index; // i % colorNumber;
             }
         }
     }
@@ -1573,6 +1575,74 @@ bool encode::fitDataIntoSymbols()
     return true;
 }
 
+void encode::maskSymbols(int mask_type, int *masked)
+{
+    for (int k = 0; k < symbolNumber; k++)
+    {
+        int startx = 0, starty = 0;
+        if (masked)
+        {
+            // calculate the starting coordinates of the symbol matrix
+            int col = symbolPos[symbolPositions[k]].x - p.min_x;
+            int row = symbolPos[symbolPositions[k]].y - p.min_y;
+            for (int c = 0; c < col; c++)
+                startx += p.col_width[c];
+            for (int r = 0; r < row; r++)
+                starty += p.row_height[r];
+        }
+        int symbol_width = symbols[k].side_size.x;
+        int symbol_height = symbols[k].side_size.y;
+
+        // apply mask on the symbol
+        for (int y = 0; y < symbol_height; y++)
+        {
+            for (int x = 0; x < symbol_width; x++)
+            {
+                int index = symbols[k].matrix[y * symbol_width + x];
+                if (symbols[k].dataMap[y * symbol_width + x])
+                {
+                    switch (mask_type)
+                    {
+                    case 0:
+                        index ^= (x + y) % colorNumber;
+                        break;
+                    case 1:
+                        index ^= x % colorNumber;
+                        break;
+                    case 2:
+                        index ^= y % colorNumber;
+                        break;
+                    case 3:
+                        index ^= (x / 2 + y / 3) % colorNumber;
+                        break;
+                    case 4:
+                        index ^= (x / 3 + y / 2) % colorNumber;
+                        break;
+                    case 5:
+                        index ^= ((x + y) / 2 + (x + y) / 3) % colorNumber;
+                        break;
+                    case 6:
+                        index ^= ((x * x * y) % 7 + (2 * x * x + 2 * y) % 19) % colorNumber;
+                        break;
+                    case 7:
+                        index ^= ((x * y * y) % 5 + (2 * x + y * y) % 13) % colorNumber;
+                        break;
+                    }
+                    if (masked)
+                        masked[(y + starty) * p.code_size.x + (x + startx)] = index;
+                    else
+                        symbols[k].matrix[y * symbol_width + x] = (uint8_t)index;
+                }
+                else
+                {
+                    if (masked)
+                        masked[(y + starty) * p.code_size.x + (x + startx)] = index; // copy non-data module
+                }
+            }
+        }
+    }
+}
+
 bool encode::InitSymbols()
 {
     // check all information for multi-symbol code are valid
@@ -1714,6 +1784,39 @@ void interleaveData(std::string &data)
     }
 }
 
+int encode::maskCode()
+{
+    int mask_type = 0;
+    int min_penalty_score = 10000;
+
+    // allocate memory for masked code
+    std::vector<int> masked(p.code_size.x * p.code_size.y, -1);
+
+    // evaluate each mask pattern
+    for (int t = 0; t < NUMBER_OF_MASK_PATTERNS; t++)
+    {
+        int penalty_score = 0;
+        maskSymbols(enc, t, masked, cp);
+        // calculate the penalty score
+        penalty_score = evaluateMask(masked, cp->code_size.x, cp->code_size.y, enc->color_number);
+#if TEST_MODE
+        // JAB_REPORT_INFO(("Penalty score: %d", penalty_score))
+#endif
+        if (penalty_score < min_penalty_score)
+        {
+            mask_type = t;
+            min_penalty_score = penalty_score;
+        }
+    }
+
+    // mask all symbols with the selected mask pattern
+    maskSymbols(enc, mask_type, 0, 0);
+
+    // clean memory
+    free(masked);
+    return mask_type;
+}
+
 int encode::generateJABCode(std::string &data)
 {
     // Check data
@@ -1777,43 +1880,41 @@ int encode::generateJABCode(std::string &data)
     // encode each symbol in turn
     for (int i = 0; i < symbolNumber; i++)
     {
+        std::vector<int> swcwr{symbols[i].wcwr[0], symbols[i].wcwr[1]};
         // error correction for data
-        data *ecc_encoded_data = encodeLDPC(symbols[i].data, symbols[i].wcwr);
-        if (ecc_encoded_data == NULL)
+        std::string ecc_encoded_data = encodeLDPC(symbols[i].data, swcwr);
+        if (ecc_encoded_data.empty())
         {
-            std::cout << "LDPC encoding for the data in symbol %d failed", i))
+            std::cout << "LDPC encoding for the data in symbol %d failed" << i;
             return 1;
         }
         // interleave
         interleaveData(ecc_encoded_data);
         // create Matrix
-        boolean cm_flag = createMatrix(enc, i, ecc_encoded_data);
-        free(ecc_encoded_data);
+        bool cm_flag = createMatrix(i, ecc_encoded_data);
+        ecc_encoded_data.clear();
         if (!cm_flag)
         {
-            std::cout << "Creating matrix for symbol %d failed", i))
+            std::cout << "Creating matrix for symbol " << i << " failed";
             return 1;
         }
     }
 
     // mask all symbols in the code
-    code *cp = getCodePara(enc);
-    if (!cp)
+    getCodePara();
+
+    if (isDefaultMode()) // default mode
     {
-        return 1;
-    }
-    if (isDefaultMode(enc)) // default mode
-    {
-        maskSymbols(enc, DEFAULT_MASKING_REFERENCE, 0, 0);
+        maskSymbols(DEFAULT_MASKING_REFERENCE, 0);
     }
     else
     {
-        int mask_reference = maskCode(enc, cp);
+        int mask_reference = maskCode(enc, p);
         if (mask_reference < 0)
         {
-            free(cp->row_height);
-            free(cp->col_width);
-            free(cp);
+            free(p.row_height);
+            free(p.col_width);
+            free(p);
             return 1;
         }
 #if TEST_MODE
@@ -1829,10 +1930,10 @@ int encode::generateJABCode(std::string &data)
     }
 
     // create the code bitmap
-    boolean cb_flag = createBitmap(enc, cp);
-    free(cp->row_height);
-    free(cp->col_width);
-    free(cp);
+    boolean cb_flag = createBitmap(enc, p);
+    free(p.row_height);
+    free(p.col_width);
+    free(p);
     if (!cb_flag)
     {
         std::cout << "Creating the code bitmap failed"))
