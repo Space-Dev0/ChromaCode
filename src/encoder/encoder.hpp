@@ -4,8 +4,10 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
-#include <algorithm>
 #include <cmath>
+#include "ldpc.hpp"
+#include "pseudoRandom.hpp"
+#include "./include/png.h"
 
 #define DEFAULT_SYMBOL_NUMBER 1
 #define DEFAULT_MODULE_SIZE 12
@@ -48,6 +50,10 @@
 #define BITMAP_CHANNEL_COUNT 4
 
 #define INTERLEAVE_SEED 226759
+
+#define W1 100
+#define W2 3
+#define W3 3
 
 #define VERSION2SIZE(x) (x * 4 + 17)
 #define SIZE2VERSION(x) ((x - 17) / 4)
@@ -530,7 +536,6 @@ public:
     std::string metadata;
     std::vector<uint8_t> matrix;
     void getOptimalECC(int capacity, int net_data_length);
-    bool createMatrix(encode &enc, std::string &ecc_encoded_data);
 };
 
 class encode
@@ -538,6 +543,8 @@ class encode
     friend class symbol;
 
 private:
+    int maskCode();
+    void maskSymbols(int mask_type, int *masked);
     void setDefaultPalette(int color_number, std::vector<rgb> &palette);
     void setDefaultEccLevels(int symbol_number, std::vector<uint8_t> &ecc_levels);
     void swap_byte(uint8_t *a, uint8_t *b);
@@ -549,13 +556,14 @@ private:
     void swap_symbols(int index1, int index2);
     int getMetadataLength(int index);
     int getSymbolCapacity(int index);
+    bool createMatrix(int index, std::string &ecc_encoded_data);
     std::string encodedData;
     int encodedLength;
     chromaCode p;
 
 public:
-    int colorNumber;
-    int symbolNumber;
+    int colorNumber{0};
+    int symbolNumber{0};
     int moduleSize{DEFAULT_MODULE_SIZE};
     int masterSymbolWidth{0};
     int masterSymbolHeight{0};
@@ -580,7 +588,7 @@ public:
     bool fitDataIntoSymbols();
     bool InitSymbols();
     bool setSlaveMetadata();
-    int generateJABCode(std::string &data);
+    int generateChromaCode(std::string &data);
     encode(int color_number, int symbol_number);
     ~encode();
 };
