@@ -562,8 +562,8 @@ private:
     chromaCode p;
 
 public:
-    int colorNumber;
-    int symbolNumber;
+    int colorNumber{0};
+    int symbolNumber{0};
     int moduleSize{DEFAULT_MODULE_SIZE};
     int masterSymbolWidth{0};
     int masterSymbolHeight{0};
