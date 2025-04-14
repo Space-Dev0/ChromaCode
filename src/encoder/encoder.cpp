@@ -2176,6 +2176,38 @@ int encode::generateChromaCode(std::string &data)
     return 0;
 }
 
+bool saveImage(bitmap *bitmp, std::string &filename)
+{
+    png_image image;
+    memset(&image, 0, sizeof(image));
+    image.version = PNG_IMAGE_VERSION;
+
+    if (bitmp->channel_count == 4)
+    {
+        image.format = PNG_FORMAT_RGBA;
+        image.flags = PNG_FORMAT_FLAG_ALPHA | PNG_FORMAT_FLAG_COLOR;
+    }
+    else
+    {
+        image.format = PNG_FORMAT_GRAY;
+    }
+
+    image.width = bitmp->width;
+    image.height = bitmp->height;
+
+    if (png_image_write_to_file(&image,
+                                filename.c_str(),
+                                0 /*convert_to_8bit*/,
+                                bitmp->pixel.data(),
+                                0 /*row_stride*/,
+                                NULL /*colormap*/) == 0)
+    {
+        std::cout << "Saving png image failed";
+        return false;
+    }
+    return true;
+}
+
 int main()
 {
     return 0;

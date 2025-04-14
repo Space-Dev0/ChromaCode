@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
-#include <algorithm>
 #include <cmath>
 #include "ldpc.hpp"
-#include "./include/pseudoRandom.hpp"
+#include "pseudoRandom.hpp"
+#include "./include/png.h"
 
 #define DEFAULT_SYMBOL_NUMBER 1
 #define DEFAULT_MODULE_SIZE 12

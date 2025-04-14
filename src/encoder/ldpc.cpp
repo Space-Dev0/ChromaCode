@@ -1,5 +1,5 @@
 #include "ldpc.hpp"
-#include "./include/pseudoRandom.hpp"
+#include "pseudoRandom.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -64,7 +64,7 @@ std::vector<int32_t> createMatrixA(int32_t wc, int32_t wr, int32_t capacity)
   }
   return matrixA;
 }
-int32_t GaussJordan(std::vector<int32_t> matrixA, int32_t wc, int32_t wr,
+int32_t GaussJordan(std::vector<int32_t> &matrixA, int32_t wc, int32_t wr,
                     int32_t *matrix_rank, bool encode)
 {
   int32_t capacity;
@@ -77,13 +77,13 @@ int32_t GaussJordan(std::vector<int32_t> matrixA, int32_t wc, int32_t wr,
 
   int32_t offset = ceil(capacity / (float)32);
 
-  std::vector<int32_t> matrixH(offset * nb_pcb, sizeof(int32_t));
-  std::copy(matrixA, matrixH, offset * nb_pcb * sizeof(int32_t));
+  std::vector<int32_t> matrixH(offset * nb_pcb);
+  std::copy_n(matrixA.begin(), offset * nb_pcb, matrixH.begin());
 
-  std::vector<int32_t> column_arrangement(capacity, sizeof(int32_t));
-  std::vector<bool> processed_column(capacity * sizeof(bool));
-  std::vector<int32_t> zero_lines_nb(nb_pcb * 4);
-  std::vector<int32_t> swap_col(2 * capacity * sizeof(int32_t));
+  std::vector<int32_t> column_arrangement(capacity);
+  std::vector<bool> processed_column(capacity);
+  std::vector<int32_t> zero_lines_nb(nb_pcb);
+  std::vector<int32_t> swap_col(2 * capacity);
 
   int32_t zero_lines = 0;
 
@@ -181,8 +181,7 @@ int32_t GaussJordan(std::vector<int32_t> matrixA, int32_t wc, int32_t wr,
   if (encode)
   {
     for (int32_t i = 0; i < nb_pcb; i++)
-      memcpy(&matrixA + i * offset, &matrixH + column_arrangement[i] * offset,
-             offset * sizeof(int32_t));
+      std::copy_n(matrixH.begin() + column_arrangement[i] * offset, offset, matrixA.begin() + i * offset);
 
     // swap columns
     int32_t tmp = 0;
@@ -212,8 +211,7 @@ int32_t GaussJordan(std::vector<int32_t> matrixA, int32_t wc, int32_t wr,
   {
     //    memcpy(matrixH,matrixA,offset*nb_pcb*sizeof(int32_t));
     for (int32_t i = 0; i < nb_pcb; i++)
-      memcpy(&matrixH + i * offset, &matrixA + column_arrangement[i] * offset,
-             offset * sizeof(int32_t));
+      std::copy_n(matrixA.begin() + column_arrangement[i] * offset, offset, matrixH.begin() + i * offset);
 
     // swap columns
     int32_t tmp = 0;
@@ -238,7 +236,7 @@ int32_t GaussJordan(std::vector<int32_t> matrixA, int32_t wc, int32_t wr,
             (1 << (31 - swap_col[2 * i + 1] % 32));
       }
     }
-    memcpy(&matrixA, &matrixH, offset * nb_pcb * sizeof(int32_t));
+    std::copy_n(matrixH.begin(), offset * nb_pcb, matrixA.begin());
   }
 
   return 0;
