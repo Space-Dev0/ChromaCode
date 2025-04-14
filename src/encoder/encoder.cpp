@@ -1783,6 +1783,243 @@ void interleaveData(std::string &data)
         data[pos] = tmp;
     }
 }
+int applyRule1(int *matrix, int width, int height, int color_number)
+{
+    uint8_t fp0_c1, fp0_c2;
+    uint8_t fp1_c1, fp1_c2;
+    uint8_t fp2_c1, fp2_c2;
+    uint8_t fp3_c1, fp3_c2;
+    if (color_number == 2) // two colors: black(000) white(111)
+    {
+        fp0_c1 = 0;
+        fp0_c2 = 1;
+        fp1_c1 = 1;
+        fp1_c2 = 0;
+        fp2_c1 = 1;
+        fp2_c2 = 0;
+        fp3_c1 = 1;
+        fp3_c2 = 0;
+    }
+    else if (color_number == 4)
+    {
+        fp0_c1 = 0;
+        fp0_c2 = 3;
+        fp1_c1 = 1;
+        fp1_c2 = 2;
+        fp2_c1 = 2;
+        fp2_c2 = 1;
+        fp3_c1 = 3;
+        fp3_c2 = 0;
+    }
+    else
+    {
+        fp0_c1 = FP0_CORE_COLOR;
+        fp0_c2 = 7 - FP0_CORE_COLOR;
+        fp1_c1 = FP1_CORE_COLOR;
+        fp1_c2 = 7 - FP1_CORE_COLOR;
+        fp2_c1 = FP2_CORE_COLOR;
+        fp2_c2 = 7 - FP2_CORE_COLOR;
+        fp3_c1 = FP3_CORE_COLOR;
+        fp3_c2 = 7 - FP3_CORE_COLOR;
+    }
+
+    int score = 0;
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            /*			//horizontal check
+                        if(j + 4 < width)
+                        {
+                            if(matrix[i * width + j] 	 == fp0_c1 &&	//finder pattern 0
+                               matrix[i * width + j + 1] == fp0_c2 &&
+                               matrix[i * width + j + 2] == fp0_c1 &&
+                               matrix[i * width + j + 3] == fp0_c2 &&
+                               matrix[i * width + j + 4] == fp0_c1)
+                               score++;
+                            else if(									//finder pattern 1
+                               matrix[i * width + j] 	 == fp1_c1 &&
+                               matrix[i * width + j + 1] == fp1_c2 &&
+                               matrix[i * width + j + 2] == fp1_c1 &&
+                               matrix[i * width + j + 3] == fp1_c2 &&
+                               matrix[i * width + j + 4] == fp1_c1)
+                               score++;
+                            else if(									//finder pattern 2
+                               matrix[i * width + j] 	 == fp2_c1 &&
+                               matrix[i * width + j + 1] == fp2_c2 &&
+                               matrix[i * width + j + 2] == fp2_c1 &&
+                               matrix[i * width + j + 3] == fp2_c2 &&
+                               matrix[i * width + j + 4] == fp2_c1)
+                               score++;
+                            else if(									//finder pattern 3
+                               matrix[i * width + j] 	 == fp3_c1 &&
+                               matrix[i * width + j + 1] == fp3_c2 &&
+                               matrix[i * width + j + 2] == fp3_c1 &&
+                               matrix[i * width + j + 3] == fp3_c2 &&
+                               matrix[i * width + j + 4] == fp3_c1)
+                               score++;
+                        }
+                        //vertical check
+                        if(i + 4 < height)
+                        {
+                            if(matrix[i * width + j] 	   == fp0_c1 &&	//finder pattern 0
+                               matrix[(i + 1) * width + j] == fp0_c2 &&
+                               matrix[(i + 2) * width + j] == fp0_c1 &&
+                               matrix[(i + 3) * width + j] == fp0_c2 &&
+                               matrix[(i + 4) * width + j] == fp0_c1)
+                               score++;
+                            else if(									//finder pattern 1
+                               matrix[i * width + j] 	   == fp1_c1 &&
+                               matrix[(i + 1) * width + j] == fp1_c2 &&
+                               matrix[(i + 2) * width + j] == fp1_c1 &&
+                               matrix[(i + 3) * width + j] == fp1_c2 &&
+                               matrix[(i + 4) * width + j] == fp1_c1)
+                               score++;
+                            else if(									//finder pattern 2
+                               matrix[i * width + j] 	   == fp2_c1 &&
+                               matrix[(i + 1) * width + j] == fp2_c2 &&
+                               matrix[(i + 2) * width + j] == fp2_c1 &&
+                               matrix[(i + 3) * width + j] == fp2_c2 &&
+                               matrix[(i + 4) * width + j] == fp2_c1)
+                               score++;
+                            else if(									//finder pattern 3
+                               matrix[i * width + j] 	   == fp3_c1 &&
+                               matrix[(i + 1) * width + j] == fp3_c2 &&
+                               matrix[(i + 2) * width + j] == fp3_c1 &&
+                               matrix[(i + 3) * width + j] == fp3_c2 &&
+                               matrix[(i + 4) * width + j] == fp3_c1)
+                               score++;
+                        }
+            */
+            if (j >= 2 && j <= width - 3 && i >= 2 && i <= height - 3)
+            {
+                if (matrix[i * width + j - 2] == fp0_c1 && // finder pattern 0
+                    matrix[i * width + j - 1] == fp0_c2 &&
+                    matrix[i * width + j] == fp0_c1 &&
+                    matrix[i * width + j + 1] == fp0_c2 &&
+                    matrix[i * width + j + 2] == fp0_c1 &&
+                    matrix[(i - 2) * width + j] == fp0_c1 &&
+                    matrix[(i - 1) * width + j] == fp0_c2 &&
+                    matrix[(i)*width + j] == fp0_c1 &&
+                    matrix[(i + 1) * width + j] == fp0_c2 &&
+                    matrix[(i + 2) * width + j] == fp0_c1)
+                    score++;
+                else if (
+                    matrix[i * width + j - 2] == fp1_c1 && // finder pattern 1
+                    matrix[i * width + j - 1] == fp1_c2 &&
+                    matrix[i * width + j] == fp1_c1 &&
+                    matrix[i * width + j + 1] == fp1_c2 &&
+                    matrix[i * width + j + 2] == fp1_c1 &&
+                    matrix[(i - 2) * width + j] == fp1_c1 &&
+                    matrix[(i - 1) * width + j] == fp1_c2 &&
+                    matrix[(i)*width + j] == fp1_c1 &&
+                    matrix[(i + 1) * width + j] == fp1_c2 &&
+                    matrix[(i + 2) * width + j] == fp1_c1)
+                    score++;
+                else if (
+                    matrix[i * width + j - 2] == fp2_c1 && // finder pattern 2
+                    matrix[i * width + j - 1] == fp2_c2 &&
+                    matrix[i * width + j] == fp2_c1 &&
+                    matrix[i * width + j + 1] == fp2_c2 &&
+                    matrix[i * width + j + 2] == fp2_c1 &&
+                    matrix[(i - 2) * width + j] == fp2_c1 &&
+                    matrix[(i - 1) * width + j] == fp2_c2 &&
+                    matrix[(i)*width + j] == fp2_c1 &&
+                    matrix[(i + 1) * width + j] == fp2_c2 &&
+                    matrix[(i + 2) * width + j] == fp2_c1)
+                    score++;
+                else if (
+                    matrix[i * width + j - 2] == fp3_c1 && // finder pattern 3
+                    matrix[i * width + j - 1] == fp3_c2 &&
+                    matrix[i * width + j] == fp3_c1 &&
+                    matrix[i * width + j + 1] == fp3_c2 &&
+                    matrix[i * width + j + 2] == fp3_c1 &&
+                    matrix[(i - 2) * width + j] == fp3_c1 &&
+                    matrix[(i - 1) * width + j] == fp3_c2 &&
+                    matrix[(i)*width + j] == fp3_c1 &&
+                    matrix[(i + 1) * width + j] == fp3_c2 &&
+                    matrix[(i + 2) * width + j] == fp3_c1)
+                    score++;
+            }
+        }
+    }
+    return W1 * score;
+}
+
+int applyRule2(int *matrix, int width, int height)
+{
+    int score = 0;
+    for (int i = 0; i < height - 1; i++)
+    {
+        for (int j = 0; j < width - 1; j++)
+        {
+            if (matrix[i * width + j] != -1 && matrix[i * width + (j + 1)] != -1 &&
+                matrix[(i + 1) * width + j] != -1 && matrix[(i + 1) * width + (j + 1)] != -1)
+            {
+                if (matrix[i * width + j] == matrix[i * width + (j + 1)] &&
+                    matrix[i * width + j] == matrix[(i + 1) * width + j] &&
+                    matrix[i * width + j] == matrix[(i + 1) * width + (j + 1)])
+                    score++;
+            }
+        }
+    }
+    return W2 * score;
+}
+
+int applyRule3(int *matrix, int width, int height)
+{
+    int score = 0;
+    for (int k = 0; k < 2; k++)
+    {
+        int maxi, maxj;
+        if (k == 0) // horizontal scan
+        {
+            maxi = height;
+            maxj = width;
+        }
+        else // vertical scan
+        {
+            maxi = width;
+            maxj = height;
+        }
+        for (int i = 0; i < maxi; i++)
+        {
+            int same_color_count = 0;
+            int pre_color = -1;
+            for (int j = 0; j < maxj; j++)
+            {
+                int cur_color = (k == 0 ? matrix[i * width + j] : matrix[j * width + i]);
+                if (cur_color != -1)
+                {
+                    if (cur_color == pre_color)
+                        same_color_count++;
+                    else
+                    {
+                        if (same_color_count >= 5)
+                            score += W3 + (same_color_count - 5);
+                        same_color_count = 1;
+                        pre_color = cur_color;
+                    }
+                }
+                else
+                {
+                    if (same_color_count >= 5)
+                        score += W3 + (same_color_count - 5);
+                    same_color_count = 0;
+                    pre_color = -1;
+                }
+            }
+            if (same_color_count >= 5)
+                score += W3 + (same_color_count - 5);
+        }
+    }
+    return score;
+}
+
+int evaluateMask(int *matrix, int width, int height, int color_number)
+{
+    return applyRule1(matrix, width, height, color_number) + applyRule2(matrix, width, height) + applyRule3(matrix, width, height);
+}
 
 int encode::maskCode()
 {
@@ -1790,18 +2027,22 @@ int encode::maskCode()
     int min_penalty_score = 10000;
 
     // allocate memory for masked code
-    std::vector<int> masked(p.code_size.x * p.code_size.y, -1);
+    int *masked = (int *)malloc(p.code_size.x * p.code_size.y * sizeof(int));
+    if (masked == NULL)
+    {
+        std::cout << "Memory allocation for masked code failed";
+        return -1;
+    }
+    memset(masked, -1, p.code_size.x * p.code_size.y * sizeof(int)); // set all bytes in masked as 0xFF
 
     // evaluate each mask pattern
     for (int t = 0; t < NUMBER_OF_MASK_PATTERNS; t++)
     {
         int penalty_score = 0;
-        maskSymbols(enc, t, masked, cp);
+        maskSymbols(t, masked);
         // calculate the penalty score
-        penalty_score = evaluateMask(masked, cp->code_size.x, cp->code_size.y, enc->color_number);
-#if TEST_MODE
-        // JAB_REPORT_INFO(("Penalty score: %d", penalty_score))
-#endif
+        penalty_score = evaluateMask(masked, p.code_size.x, p.code_size.y, colorNumber);
+
         if (penalty_score < min_penalty_score)
         {
             mask_type = t;
@@ -1810,14 +2051,14 @@ int encode::maskCode()
     }
 
     // mask all symbols with the selected mask pattern
-    maskSymbols(enc, mask_type, 0, 0);
+    maskSymbols(mask_type, 0);
 
     // clean memory
     free(masked);
     return mask_type;
 }
 
-int encode::generateJABCode(std::string &data)
+int encode::generateChromaCode(std::string &data)
 {
     // Check data
     if (data.empty())
@@ -1909,34 +2150,27 @@ int encode::generateJABCode(std::string &data)
     }
     else
     {
-        int mask_reference = maskCode(enc, p);
+        int mask_reference = maskCode();
         if (mask_reference < 0)
         {
-            free(p.row_height);
-            free(p.col_width);
-            free(p);
             return 1;
         }
-#if TEST_MODE
-        REPORT_INFO(("mask reference: %d", mask_reference))
-#endif
+
         if (mask_reference != DEFAULT_MASKING_REFERENCE)
         {
             // re-encode PartII of master symbol metadata
-            updateMasterMetadataPartII(enc, mask_reference);
+            updateMasterMetadataPartII(mask_reference);
             // update the masking reference in master symbol metadata
-            placeMasterMetadataPartII(enc);
+            placeMasterMetadataPartII();
         }
     }
 
     // create the code bitmap
-    boolean cb_flag = createBitmap(enc, p);
-    free(p.row_height);
-    free(p.col_width);
-    free(p);
+    bool cb_flag = createBitmap();
+
     if (!cb_flag)
     {
-        std::cout << "Creating the code bitmap failed"))
+        std::cout << "Creating the code bitmap failed";
         return 1;
     }
     return 0;
