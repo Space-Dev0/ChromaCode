@@ -26,7 +26,8 @@ std::vector<uint8_t> symbol_ecc_levels;
 int32_t symbol_ecc_levels_number = 0;
 int32_t color_space = 0;
 
-void printUsage() {
+void printUsage()
+{
   std::cout << '\n';
   std::cout << "ChromaCodeWriter (Version " << VERSION
             << " Build date: " << BUILD_DATE << ")";
@@ -63,22 +64,29 @@ void printUsage() {
                "4 2 3 2\n\n";
 }
 
-bool parseCommandLineParameters(int32_t para_number, char *para[]) {
-  for (int32_t loop = 1; loop < para_number; loop++) {
-    if (0 == strcmp(para[loop], "--input")) {
-      if (loop + 1 > para_number - 1) {
+bool parseCommandLineParameters(int32_t para_number, char *para[])
+{
+  for (int32_t loop = 1; loop < para_number; loop++)
+  {
+    if (0 == strcmp(para[loop], "--input"))
+    {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << para[loop] << "' missing.\n";
         return false;
       }
-      std::string data_string = para[++loop];
-      memcpy(&data, &data_string, data_string.length());
-    } else if (0 == strcmp(para[loop], "--input-file")) {
-      if (loop + 1 > para_number - 1) {
+      data = para[++loop];
+    }
+    else if (0 == strcmp(para[loop], "--input-file"))
+    {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "value for option '" << para[loop] << "' missing.\n";
         return false;
       }
       FILE *fp = fopen(para[++loop], "rb");
-      if (!fp) {
+      if (!fp)
+      {
         reportError("Opening input data file failed.");
         return false;
       }
@@ -87,107 +95,139 @@ bool parseCommandLineParameters(int32_t para_number, char *para[]) {
       file_size = ftell(fp);
       data.reserve(file_size);
       fseek(fp, 0, SEEK_SET);
-      if (fread(&data, 1, file_size, fp) != file_size) {
+      char *temp;
+      if (fread(temp, 1, file_size, fp) != file_size)
+      {
         reportError("Reading input data file failed");
         fclose(fp);
         return false;
       }
+      data = temp;
       fclose(fp);
-      data.resize(file_size);
-    } else if (0 == strcmp(para[loop], "--output")) {
-      if (loop + 1 > para_number - 1) {
+    }
+    else if (0 == strcmp(para[loop], "--output"))
+    {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << para[loop] << "' missing.\n";
         return false;
       }
       filename = para[++loop];
-    } else if (0 == strcmp(para[loop], "--color-number")) {
+    }
+    else if (0 == strcmp(para[loop], "--color-number"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       char *endptr;
       color_number = strtol(para[++loop], &endptr, 10);
-      if (*endptr) {
+      if (*endptr)
+      {
         std::cout << "Invalid or missing values for option '" << option
                   << "'.\n";
         return false;
       }
-      if (color_number != 4 && color_number != 8) {
+      if (color_number != 4 && color_number != 8)
+      {
         reportError(
             "Invalid color number. Supported color number includes 4 and 8.");
         return false;
       }
-    } else if (0 == strcmp(para[loop], "--module-size")) {
+    }
+    else if (0 == strcmp(para[loop], "--module-size"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       char *endptr;
       module_size = strtol(para[++loop], &endptr, 10);
-      if (*endptr || module_size < 0) {
+      if (*endptr || module_size < 0)
+      {
         std::cout << "Invalid or missing values for option '" << option
                   << "'.\n";
         return false;
       }
-    } else if (0 == strcmp(para[loop], "--symbol-width")) {
+    }
+    else if (0 == strcmp(para[loop], "--symbol-width"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       char *endptr;
       master_symbol_width = strtol(para[++loop], &endptr, 10);
-      if (*endptr || master_symbol_width < 0) {
+      if (*endptr || master_symbol_width < 0)
+      {
         std::cout << "Invalid or missing values for option '" << option
                   << "'.\n";
         return false;
       }
-    } else if (0 == strcmp(para[loop], "--symbol-height")) {
+    }
+    else if (0 == strcmp(para[loop], "--symbol-height"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       char *endptr;
       master_symbol_height = strtol(para[++loop], &endptr, 10);
-      if (*endptr || master_symbol_height < 0) {
+      if (*endptr || master_symbol_height < 0)
+      {
         std::cout << "Invalid or missing values for option '" << option
                   << "'.\n";
         return false;
       }
-    } else if (0 == strcmp(para[loop], "--symbol-number")) {
+    }
+    else if (0 == strcmp(para[loop], "--symbol-number"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       char *endptr;
       symbol_number = strtol(para[++loop], &endptr, 10);
-      if (*endptr) {
+      if (*endptr)
+      {
         std::cout << "Invalid or missing values for option '" << option
                   << "'.\n";
         return false;
       }
-      if (symbol_number < 1 || symbol_number > MAX_SYMBOL_NUMBER) {
+      if (symbol_number < 1 || symbol_number > MAX_SYMBOL_NUMBER)
+      {
         reportError("Invalid symbol number (must be 1 - 61).");
         return false;
       }
-    } else if (0 == strcmp(para[loop], "--color-space")) {
+    }
+    else if (0 == strcmp(para[loop], "--color-space"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       char *endptr;
       color_space = strtol(para[++loop], &endptr, 10);
-      if (*endptr) {
+      if (*endptr)
+      {
         std::cout << "Invalid or missing values for option '" << option
                   << "'.\n";
         return false;
       }
-      if (color_space != 0 && color_space != 1) {
+      if (color_space != 0 && color_space != 1)
+      {
         reportError("Invalid color space (must be 0 or 1).");
         return false;
       }
@@ -195,34 +235,43 @@ bool parseCommandLineParameters(int32_t para_number, char *para[]) {
   }
 
   // check input
-  if (data.length() == 0) {
+  if (data.length() == 0)
+  {
     reportError("Input data is empty");
     return false;
   }
-  if (filename.empty()) {
+  if (filename.empty())
+  {
     reportError("Output file missing");
     return false;
   }
-  if (symbol_number == 0) {
+  if (symbol_number == 0)
+  {
     symbol_number = 1;
   }
 
   // second scan
-  for (int32_t loop = 1; loop < para_number; loop++) {
-    if (0 == strcmp(para[loop], "--ecc-level")) {
+  for (int32_t loop = 1; loop < para_number; loop++)
+  {
+    if (0 == strcmp(para[loop], "--ecc-level"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       symbol_ecc_levels.reserve(symbol_number);
-      for (int32_t j = 0; j < symbol_number; j++) {
+      for (int32_t j = 0; j < symbol_number; j++)
+      {
         if (loop + 1 > para_number - 1)
           break;
         char *endptr;
         symbol_ecc_levels[j] = strtol(para[++loop], &endptr, 10);
-        if (*endptr) {
-          if (symbol_ecc_levels_number == 0) {
+        if (*endptr)
+        {
+          if (symbol_ecc_levels_number == 0)
+          {
             std::cout << "Value for option '" << option
                       << "' missing or invalid.\n";
             return false;
@@ -230,68 +279,85 @@ bool parseCommandLineParameters(int32_t para_number, char *para[]) {
           loop--;
           break;
         }
-        if (symbol_ecc_levels[j] < 0 || symbol_ecc_levels[j] > 10) {
+        if (symbol_ecc_levels[j] < 0 || symbol_ecc_levels[j] > 10)
+        {
           reportError("Invalid error correction level (must be 1 - 10).");
           return false;
         }
         symbol_ecc_levels_number++;
       }
-    } else if (0 == strcmp(para[loop], "--symbol-version")) {
+    }
+    else if (0 == strcmp(para[loop], "--symbol-version"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       symbol_versions.reserve(symbol_number);
-      for (int32_t j = 0; j < symbol_number; j++) {
-        if (loop + 1 > para_number - 1) {
+      for (int32_t j = 0; j < symbol_number; j++)
+      {
+        if (loop + 1 > para_number - 1)
+        {
           std::cout << "Too few values for option '" << option << "'.\n";
           return false;
         }
         char *endptr;
         symbol_versions[j].x = strtol(para[++loop], &endptr, 10);
-        if (*endptr) {
+        if (*endptr)
+        {
           std::cout << "Invalid or missing values for option '" << option
                     << "'.\n";
           return false;
         }
-        if (loop + 1 > para_number - 1) {
+        if (loop + 1 > para_number - 1)
+        {
           std::cout << "Too few values for option '" << option << "'.\n";
           return false;
         }
         symbol_versions[j].y = strtol(para[++loop], &endptr, 10);
-        if (*endptr) {
+        if (*endptr)
+        {
           std::cout << "Invalid or missing values for option '" << option
                     << "'.\n";
           return false;
         }
         if (symbol_versions[j].x < 1 || symbol_versions[j].x > 32 ||
-            symbol_versions[j].y < 1 || symbol_versions[j].y > 32) {
+            symbol_versions[j].y < 1 || symbol_versions[j].y > 32)
+        {
           reportError("Invalid symbol side version (must be 1 - 32).");
           return false;
         }
         symbol_versions_number++;
       }
-    } else if (0 == strcmp(para[loop], "--symbol-position")) {
+    }
+    else if (0 == strcmp(para[loop], "--symbol-position"))
+    {
       char *option = para[loop];
-      if (loop + 1 > para_number - 1) {
+      if (loop + 1 > para_number - 1)
+      {
         std::cout << "Value for option '" << option << "' missing.\n";
         return false;
       }
       symbol_positions.reserve(symbol_number);
-      for (int32_t j = 0; j < symbol_number; j++) {
-        if (loop + 1 > para_number - 1) {
+      for (int32_t j = 0; j < symbol_number; j++)
+      {
+        if (loop + 1 > para_number - 1)
+        {
           std::cout << "Too few values for option '" << option << "'.\n";
           return false;
         }
         char *endptr;
         symbol_positions[j] = strtol(para[++loop], &endptr, 10);
-        if (*endptr) {
+        if (*endptr)
+        {
           std::cout << "Invalid or missing values for option '" << option
                     << "'.\n";
           return false;
         }
-        if (symbol_positions[j] < 0 || symbol_positions[j] > 60) {
+        if (symbol_positions[j] < 0 || symbol_positions[j] > 60)
+        {
           reportError("Invalid symbol position value (must be 0 - 60).");
           return false;
         }
@@ -301,18 +367,22 @@ bool parseCommandLineParameters(int32_t para_number, char *para[]) {
   }
 
   // check input
-  if (symbol_number == 1 && symbol_positions.data()) {
-    if (symbol_positions[0] != 0) {
+  if (symbol_number == 1 && symbol_positions.data())
+  {
+    if (symbol_positions[0] != 0)
+    {
       reportError("Incorrect symbol position value for master symbol.");
       return false;
     }
   }
-  if (symbol_number > 1 && symbol_positions_number != symbol_number) {
+  if (symbol_number > 1 && symbol_positions_number != symbol_number)
+  {
     reportError(
         "Symbol position information is incomplete for multi-symbol code");
     return false;
   }
-  if (symbol_number > 1 && symbol_versions_number != symbol_number) {
+  if (symbol_number > 1 && symbol_versions_number != symbol_number)
+  {
     reportError(
         "Symbol version information is incomplete for multi-symbol code");
     return false;
@@ -320,12 +390,18 @@ bool parseCommandLineParameters(int32_t para_number, char *para[]) {
   return true;
 }
 
-int main(int argc, char *argv[]) {
-  if (argc < 2 || (0 == strcmp(argv[1], "--help"))) {
+int main() //(int argc, char *argv[])
+{
+  int argc = 5;
+  char *argv[] = {"writer", "--input", "Fuck me", "--output", "test.png"};
+
+  if (argc < 2 || (0 == strcmp(argv[1], "--help")))
+  {
     printUsage();
     return 1;
   }
-  if (!parseCommandLineParameters(argc, argv)) {
+  if (!parseCommandLineParameters(argc, argv))
+  {
     return 1;
   }
 
@@ -336,21 +412,26 @@ int main(int argc, char *argv[]) {
     enc.masterSymbolWidth = master_symbol_width;
   if (master_symbol_height > 0)
     enc.masterSymbolHeight = master_symbol_height;
-  if (!symbol_ecc_levels.empty()) {
+  if (!symbol_ecc_levels.empty())
+  {
     enc.symbolEccLevels = symbol_ecc_levels;
   }
-  if (!symbol_versions.empty()) {
+  if (!symbol_versions.empty())
+  {
     enc.symbolVersions = symbol_versions;
   }
-  if (!symbol_positions.empty()) {
+  if (!symbol_positions.empty())
+  {
     enc.symbolPositions = symbol_positions;
   }
-  if (enc.generateJABCode(data) != 0) {
+  if (enc.generateChromaCode(data) != 0)
+  {
     reportError("Creating chroma code failed.");
     return 1;
   }
 
   int32_t result = 0;
-  if (color_space == 0) {
+  if (color_space == 0)
+  {
   }
 }

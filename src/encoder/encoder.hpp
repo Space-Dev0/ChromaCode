@@ -2,6 +2,7 @@
 #define ENCODER_HPP
 
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -590,7 +591,6 @@ public:
     bool setSlaveMetadata();
     int generateChromaCode(std::string &data);
     encode(int color_number, int symbol_number);
-    ~encode();
 };
 
 #endif

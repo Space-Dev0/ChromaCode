@@ -2207,8 +2207,3 @@ bool saveImage(bitmap *bitmp, std::string &filename)
     }
     return true;
 }
-
-int main()
-{
-    return 0;
-}
