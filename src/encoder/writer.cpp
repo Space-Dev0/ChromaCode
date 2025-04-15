@@ -433,5 +433,10 @@ int main() //(int argc, char *argv[])
   int32_t result = 0;
   if (color_space == 0)
   {
+    if(!saveImage(&enc.bitmp, filename)){
+      reportError("Saving png image failed.");
+      result=1;
+    }
   }
+  return result;
 }
