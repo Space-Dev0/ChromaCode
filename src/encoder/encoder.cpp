@@ -58,19 +58,22 @@ void encode::convert_dec_to_bin(int dec, std::string &bin, int start_position, i
     }
 }
 
-encode::encode(int colorNumber, int symbolNumber)
+encode::encode(int color_Number, int symbol_Number)
 {
-    if (colorNumber != 4 && colorNumber != 8)
-        colorNumber = DEFAULT_COLOR_NUMBER;
-    if (symbolNumber < 1 || symbolNumber > MAX_SYMBOL_NUMBER)
-        symbolNumber = DEFAULT_SYMBOL_NUMBER;
+    if (color_Number != 4 && color_Number != 8)
+        color_Number = DEFAULT_COLOR_NUMBER;
+    if (symbol_Number < 1 || symbol_Number > MAX_SYMBOL_NUMBER)
+        symbol_Number = DEFAULT_SYMBOL_NUMBER;
 
-    colorNumber = colorNumber;
-    symbolNumber = symbolNumber;
+    colorNumber = color_Number;
+    symbolNumber = symbol_Number;
 
     setDefaultPalette(colorNumber, palette);
-
+    symbolVersions.resize(symbolNumber);
+    symbolEccLevels.resize(symbolNumber);
     setDefaultEccLevels(symbolNumber, symbolEccLevels);
+    symbolPositions.resize(symbolNumber);
+    symbols.resize(symbolNumber);
 }
 
 std::vector<int> encode::analyzeInputData(std::string &input)
@@ -1252,6 +1255,7 @@ bool encode::createBitmap()
     int height = p.dimension * p.code_size.y;
     int bytes_per_pixel = BITMAP_BITS_PER_PIXEL / 8;
     int bytes_per_row = width * bytes_per_pixel;
+    bitmp.pixel.resize(width * height * bytes_per_pixel);
 
     bitmp.width = width;
     bitmp.height = height;
@@ -1540,10 +1544,10 @@ bool encode::fitDataIntoSymbols()
         }
 
         // start to set full payload
-        symbols[i].data.resize(pn_length);
+        symbols[i].data.reserve(pn_length);
 
         // set data
-        symbols[i].data.assign(encodedData.substr(0, assigned_data_length), s_data_length);
+        symbols[i].data.assign(encodedData, assigned_data_length, s_data_length);
         assigned_data_length += s_data_length;
         // set flag bit
         int set_pos = s_payload_length - 1;
@@ -2126,7 +2130,7 @@ int encode::generateChromaCode(std::string &data)
         std::string ecc_encoded_data = encodeLDPC(symbols[i].data, swcwr);
         if (ecc_encoded_data.empty())
         {
-            std::cout << "LDPC encoding for the data in symbol %d failed" << i;
+            std::cout << "LDPC encoding for the data in symbol " << i << " failed";
             return 1;
         }
         // interleave

@@ -26,8 +26,8 @@ std::vector<int32_t> createMatrixA(int32_t wc, int32_t wr, int32_t capacity)
 
   int32_t effwidth = ceil(capacity / (float_t)32) * 32;
   int32_t offset = ceil(capacity / (float_t)32);
-  std::vector<int32_t> matrixA(ceil(capacity / (float_t)32 * nb_pcb * 4));
-  std::vector<int32_t> permutation(capacity * 4);
+  std::vector<int32_t> matrixA(ceil(capacity / (float_t)32) * nb_pcb);
+  std::vector<int32_t> permutation(capacity);
 
   for (int32_t i = 0; i < capacity; i++)
   {
@@ -38,7 +38,7 @@ std::vector<int32_t> createMatrixA(int32_t wc, int32_t wr, int32_t capacity)
   {
     for (int32_t j = 0; j < wr; j++)
     {
-      matrixA[(i * (effwidth + wr) + j) / 32] =
+      matrixA[(i * (effwidth + wr) + j) / 32] |=
           1 << (31 - ((i * (effwidth + wr) + j) % 32));
     }
   }
@@ -64,10 +64,9 @@ std::vector<int32_t> createMatrixA(int32_t wc, int32_t wr, int32_t capacity)
   }
   return matrixA;
 }
-int32_t GaussJordan(std::vector<int32_t> &matrixA, int32_t wc, int32_t wr,
+int32_t GaussJordan(std::vector<int32_t> &matrixA, int32_t wc, int32_t wr, int32_t capacity,
                     int32_t *matrix_rank, bool encode)
 {
-  int32_t capacity;
   int32_t loop = 0;
   int32_t nb_pcb;
   if (wr < 4)
@@ -247,8 +246,8 @@ std::vector<int32_t> createMetadataMatrixA(int32_t wc, int32_t capacity)
   int32_t nb_pcb = capacity / 2;
   int32_t offset = ceil(capacity / (float_t)32);
 
-  std::vector<int32_t> matrixA(offset * nb_pcb * 4);
-  std::vector<int32_t> permutation(capacity * 4);
+  std::vector<int32_t> matrixA(offset * nb_pcb);
+  std::vector<int32_t> permutation(capacity);
   for (int32_t i = 0; i < capacity; i++)
   {
     permutation[i] = i;
@@ -262,7 +261,7 @@ std::vector<int32_t> createMetadataMatrixA(int32_t wc, int32_t capacity)
     {
       int32_t pos = (int32_t)((float_t)lcg64_temper() / (float_t)UINT32_MAX *
                               (capacity - j));
-      matrixA[i * offset + permutation[pos] / 32] =
+      matrixA[i * offset + permutation[pos] / 32] |=
           1 << (31 - permutation[pos] % 32);
       int32_t tmp = permutation[capacity - 1 - j];
       permutation[capacity - 1 - j] = permutation[pos];
@@ -280,11 +279,11 @@ std::vector<int32_t> createGeneratorMatrix(std::vector<int32_t> matrixA,
   int32_t offset = ceil(Pn / (float_t)32);
   int32_t offset_cap = ceil(capacity / (float_t)32);
 
-  std::vector<int32_t> G(offset * capacity * 4);
+  std::vector<int32_t> G(offset * capacity);
 
   for (int32_t i = 0; i < Pn; i++)
   {
-    G[(capacity - Pn + i) * offset + i / 32] = 1 << (31 - i % 32);
+    G[(capacity - Pn + i) * offset + i / 32] |= 1 << (31 - i % 32);
   }
 
   int32_t matrix_index = capacity - Pn;
@@ -362,7 +361,7 @@ std::string encodeLDPC(std::string data, std::vector<int32_t> coderate_params)
     matrixA = createMetadataMatrixA(wc, Pg_sub_block);
   }
   bool encode = 1;
-  if (GaussJordan(matrixA, wc, wr, &matrix_rank, encode))
+  if (GaussJordan(matrixA, wc, wr, Pg_sub_block, &matrix_rank, encode))
   {
     reportError("Gauss Jordan Elimination in LDPC encoder failed.");
     return emptyString;
@@ -376,7 +375,7 @@ std::string encodeLDPC(std::string data, std::vector<int32_t> coderate_params)
   }
 
   std::string ecc_encoded_data;
-  ecc_encoded_data.reserve(Pg);
+  ecc_encoded_data.resize(Pg);
   int32_t temp, loop;
   int32_t offset = ceil((Pg_sub_block - matrix_rank) / (float_t)32);
 
@@ -406,7 +405,7 @@ std::string encodeLDPC(std::string data, std::vector<int32_t> coderate_params)
     Pg_sub_block = Pg - encoding_iterations * Pg_sub_block;
     Pn_sub_block = Pg_sub_block * (wr - wc) / wr;
     std::vector<int32_t> matrixA = createMatrixA(wc, wr, Pg_sub_block);
-    if (GaussJordan(matrixA, wc, wr, &matrix_rank, encode))
+    if (GaussJordan(matrixA, wc, wr, Pg_sub_block, &matrix_rank, encode))
     {
       reportError("Gauss Jordan Elimination in LDPC encoder failed.");
       return emptyString;

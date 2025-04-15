@@ -593,4 +593,6 @@ public:
     encode(int color_number, int symbol_number);
 };
 
+bool saveImage(bitmap *bitmp, std::string &filename);
+
 #endif
